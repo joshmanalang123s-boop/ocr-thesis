@@ -19,6 +19,9 @@ class PlateOcrController extends Controller
      */
     private function processPlateImage($absolutePath)
     {
+        // Prevent PHP maximum execution timeout
+        @set_time_limit(120);
+
         try {
             $scriptPath = base_path('scripts/detect_plate.py');
             

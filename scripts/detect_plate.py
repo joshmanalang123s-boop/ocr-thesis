@@ -32,70 +32,226 @@ def download_model(model_path):
 
 def sanitize_plate_number(text):
     """Sanitize detected license plate text (keep alphanumeric, space, and hyphen, convert to uppercase)."""
+    # Convert to uppercase
+    text = text.upper()
+    
+    # Filter out common temporary/slogan/regional words
+    blacklist = {
+        "REGISTERED", "REGISTRATION", "TEMPORARY", "CONDUCTION", "STICKER", 
+        "DEALER", "MV", "FILE", "MVFILE", "FILENO", "NO", "FRONT", "REAR", 
+        "MATATAG", "PILIPINAS", "BAGONG", "NCR", "REGION", "PHILIPPINES"
+    }
+    
+    words = text.split()
+    filtered_words = []
+    for word in words:
+        # Strip non-alphanumeric to check against blacklist (e.g. "NO." -> "NO", "REGISTERED," -> "REGISTERED")
+        cleaned_word = re.sub(r'[^A-Z0-9]', '', word)
+        if cleaned_word not in blacklist:
+            filtered_words.append(word)
+            
+    text = " ".join(filtered_words)
+    
     # Remove extra spaces and keep alphanumeric characters, spaces, and dashes
     cleaned = re.sub(r'[^a-zA-Z0-9\s-]', '', text)
     # Condense multiple spaces/dashes
     cleaned = re.sub(r'[\s-]+', ' ', cleaned)
     return cleaned.strip().upper()
 
+def score_text(text):
+    """Score a text candidate based on how well it fits a license plate format."""
+    s = re.sub(r'[^A-Z0-9]', '', text.upper())
+    if not s:
+        return 0.0
+    
+    has_letters = any(c.isalpha() for c in s)
+    has_numbers = any(c.isdigit() for c in s)
+    
+    score = 1.0
+    length = len(s)
+    
+    # Length penalty (standard plates are 5-8 chars)
+    if 5 <= length <= 8:
+        score += 2.0
+    elif length == 3 or length == 4:
+        score += 1.0
+    else:
+        score -= 2.0
+        
+    # Letters & Numbers mix bonus
+    if has_letters and has_numbers:
+        score += 3.0
+    elif has_letters:
+        score += 0.5
+    elif has_numbers:
+        score += 0.5
+        
+    return score
+
+def get_merged_lines(ocr_result, img_height, is_paddle=False):
+    """Group OCR text blocks horizontally and merge them left-to-right."""
+    if not ocr_result:
+        return []
+
+    # First pass: Parse and calculate heights to filter out small noise (slogans, regions, borders)
+    parsed_items = []
+    max_height = 0.0
+    
+    if is_paddle:
+        # PaddleOCR format: [ [ [ [x1,y1],[x2,y2],[x3,y3],[x4,y4] ], ('text', conf) ], ... ]
+        for line in ocr_result:
+            if not line or len(line) < 2:
+                continue
+            bbox = line[0]
+            val = line[1][0]
+            conf = line[1][1]
+            
+            xs = [pt[0] for pt in bbox]
+            ys = [pt[1] for pt in bbox]
+            x_min = min(xs)
+            y_min, y_max = min(ys), max(ys)
+            y_center = (y_min + y_max) / 2
+            height = y_max - y_min
+            
+            if height > max_height:
+                max_height = height
+            parsed_items.append({
+                'text': val,
+                'x_min': x_min,
+                'y_center': y_center,
+                'height': height,
+                'conf': conf
+            })
+    else:
+        # EasyOCR format: [ (bbox, val, conf), ... ]
+        for bbox, val, conf in ocr_result:
+            xs = [pt[0] for pt in bbox]
+            ys = [pt[1] for pt in bbox]
+            x_min = min(xs)
+            y_min, y_max = min(ys), max(ys)
+            y_center = (y_min + y_max) / 2
+            height = y_max - y_min
+            
+            if height > max_height:
+                max_height = height
+            parsed_items.append({
+                'text': val,
+                'x_min': x_min,
+                'y_center': y_center,
+                'height': height,
+                'conf': conf
+            })
+
+    # Filter out text blocks that are too small compared to the main characters (e.g. < 45% of max height)
+    height_threshold = max_height * 0.45
+    filtered_items = [item for item in parsed_items if item['height'] >= height_threshold]
+    
+    if not filtered_items:
+        return []
+
+    # Group into lines horizontally
+    lines = []
+    y_threshold = max(40, img_height * 0.20)
+    
+    for item in filtered_items:
+        added = False
+        for group in lines:
+            if abs(group['y_center'] - item['y_center']) < y_threshold:
+                group['items'].append(item)
+                group['y_center'] = (group['y_center'] * (len(group['items'])-1) + item['y_center']) / len(group['items'])
+                added = True
+                break
+        if not added:
+            lines.append({
+                'y_center': item['y_center'],
+                'items': [item]
+            })
+
+    # Sort items in each line by x_min (left-to-right) and merge
+    merged_texts = []
+    for group in lines:
+        sorted_items = sorted(group['items'], key=lambda x: x['x_min'])
+        merged_text = " ".join([item['text'] for item in sorted_items])
+        avg_conf = sum([item['conf'] for item in sorted_items]) / len(sorted_items)
+        merged_texts.append((merged_text, avg_conf))
+        
+    return merged_texts
+
 def run_ocr(image_path):
-    """Run PaddleOCR on the cropped plate image, with EasyOCR as a fallback."""
+    """Run EasyOCR on the cropped plate image, with PaddleOCR as a fallback."""
     text = ""
     confidence = 0.0
     engine_used = "none"
 
-    # 1. Try PaddleOCR
-    try:
-        import logging
-        logging.getLogger("ppocr").setLevel(logging.ERROR)
-        from paddleocr import PaddleOCR
-        # Initialize PaddleOCR (downloads models on first run)
-        ocr = PaddleOCR(use_angle_cls=False, lang='en')
-        ocr_result = ocr.ocr(image_path)
-        
-        if ocr_result and len(ocr_result) > 0 and ocr_result[0] is not None:
-            texts = []
-            confidences = []
-            for line in ocr_result[0]:
-                if line and len(line) > 1:
-                    texts.append(line[1][0])
-                    confidences.append(line[1][1])
-            if texts:
-                text = " ".join(texts)
-                confidence = sum(confidences) / len(confidences)
-                engine_used = "paddleocr"
-    except Exception as e:
-        print(f"PaddleOCR failed/not available: {e}. Falling back to EasyOCR...", file=sys.stderr)
+    # Get image dimensions to use in thresholding
+    img = cv2.imread(image_path)
+    if img is None:
+        return "", 0.0, "none"
+    img_height = img.shape[0]
 
-    # 2. Try EasyOCR as a fallback
+    # 1. Try EasyOCR first (it is stable on Windows CPU and doesn't crash)
+    try:
+        import easyocr
+        # Initialize EasyOCR reader (downloads models on first run)
+        reader = easyocr.Reader(['en'], gpu=False)
+        
+        # Load and convert image to grayscale (2D array) to avoid shape unpacking bug in EasyOCR
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        ocr_result = reader.readtext(gray)
+        
+        if ocr_result:
+            merged_lines = get_merged_lines(ocr_result, img_height, is_paddle=False)
+            if merged_lines:
+                # Find the highest scoring line
+                best_line_text = ""
+                best_line_conf = 0.0
+                best_line_score = -999.0
+                for line_text, line_conf in merged_lines:
+                    sanitized_line = sanitize_plate_number(line_text)
+                    scr = score_text(sanitized_line)
+                    if scr > best_line_score:
+                        best_line_score = scr
+                        best_line_text = sanitized_line
+                        best_line_conf = line_conf
+                if best_line_text:
+                    text = best_line_text
+                    confidence = best_line_conf
+                    engine_used = "easyocr"
+    except Exception as e:
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+        print(f"EasyOCR failed/not available: {e}. Falling back to PaddleOCR...", file=sys.stderr)
+
+    # 2. Try PaddleOCR as a fallback
     if not text:
         try:
-            import easyocr
-            # Initialize EasyOCR reader (downloads models on first run)
-            reader = easyocr.Reader(['en'], gpu=False)
+            import logging
+            logging.getLogger("ppocr").setLevel(logging.ERROR)
+            from paddleocr import PaddleOCR
+            # Initialize PaddleOCR (downloads models on first run)
+            ocr = PaddleOCR(use_angle_cls=False, lang='en')
+            ocr_result = ocr.ocr(image_path)
             
-            # Load and convert image to grayscale (2D array) to avoid shape unpacking bug in EasyOCR
-            img = cv2.imread(image_path)
-            if img is not None:
-                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-                ocr_result = reader.readtext(gray)
-            else:
-                ocr_result = reader.readtext(image_path)
-            
-            if ocr_result:
-                texts = []
-                confidences = []
-                for bbox, val, conf in ocr_result:
-                    texts.append(val)
-                    confidences.append(conf)
-                if texts:
-                    text = " ".join(texts)
-                    confidence = sum(confidences) / len(confidences)
-                    engine_used = "easyocr"
+            if ocr_result and len(ocr_result) > 0 and ocr_result[0] is not None:
+                merged_lines = get_merged_lines(ocr_result[0], img_height, is_paddle=True)
+                if merged_lines:
+                    # Find the highest scoring line
+                    best_line_text = ""
+                    best_line_conf = 0.0
+                    best_line_score = -999.0
+                    for line_text, line_conf in merged_lines:
+                        sanitized_line = sanitize_plate_number(line_text)
+                        scr = score_text(sanitized_line)
+                        if scr > best_line_score:
+                            best_line_score = scr
+                            best_line_text = sanitized_line
+                            best_line_conf = line_conf
+                    if best_line_text:
+                        text = best_line_text
+                        confidence = best_line_conf
+                        engine_used = "paddleocr"
         except Exception as e:
-            import traceback
-            traceback.print_exc(file=sys.stderr)
-            print(f"EasyOCR failed/not available: {e}.", file=sys.stderr)
+            print(f"PaddleOCR failed/not available: {e}.", file=sys.stderr)
 
     return sanitize_plate_number(text), confidence, engine_used
 
@@ -128,7 +284,8 @@ def main():
             sys.exit(1)
             
         h, w, _ = img.shape
-        results = model(img, verbose=False)[0]
+        # Run YOLOv8 detection with conf=0.05 to capture close-up plates
+        results = model(img, verbose=False, conf=0.05)[0]
 
         # Step 4: Process detections
         best_box = None
@@ -147,9 +304,9 @@ def main():
         if best_box is not None:
             x1, y1, x2, y2 = map(int, best_box.xyxy[0])
             
-            # Pad the bounding box slightly (5%) for cleaner OCR
-            pad_w = int((x2 - x1) * 0.08)
-            pad_h = int((y2 - y1) * 0.08)
+            # Pad the bounding box (18% width, 10% height) to prevent characters from being cut off
+            pad_w = int((x2 - x1) * 0.18)
+            pad_h = int((y2 - y1) * 0.10)
             
             x1_crop = max(0, x1 - pad_w)
             y1_crop = max(0, y1 - pad_h)
@@ -161,6 +318,18 @@ def main():
             
             # Run OCR on the cropped plate
             plate_text, ocr_conf, ocr_engine = run_ocr(cropped_path)
+            
+            # If the crop OCR is already a strong license plate match, we skip full image OCR
+            score_crop = score_text(plate_text)
+            if score_crop < 5.0:
+                # Crop OCR text was weak or not a valid plate. Run OCR on the full vehicle image
+                full_text, full_conf, full_engine = run_ocr(image_path)
+                score_full = score_text(full_text)
+                
+                if score_full > score_crop and score_full >= 4.0:
+                    plate_text = full_text
+                    ocr_conf = full_conf
+                    ocr_engine = full_engine
             
             # Combine YOLO confidence & OCR confidence
             total_confidence = round((best_conf + ocr_conf) / 2 * 100, 2) if ocr_conf > 0 else round(best_conf * 100, 2)
@@ -183,18 +352,27 @@ def main():
             }))
         else:
             # Fallback when no license plate is found by YOLOv8
-            # Make a cropped thumbnail of the middle area of the car image to display
             crop_h, crop_w = int(h * 0.3), int(w * 0.5)
             y1_crop, x1_crop = int(h * 0.4), int(w * 0.25)
             cropped_img = img[y1_crop:y1_crop+crop_h, x1_crop:x1_crop+crop_w]
             cv2.imwrite(cropped_path, cropped_img)
             
-            # Run OCR on the middle crop just in case
-            plate_text, ocr_conf, ocr_engine = run_ocr(cropped_path)
+            # Run OCR on the full vehicle image first
+            plate_text, ocr_conf, ocr_engine = run_ocr(image_path)
+            score_full = score_text(plate_text)
+            
+            # If full image OCR failed, run OCR on the fallback crop
+            if score_full < 4.0:
+                crop_text, crop_conf, crop_engine = run_ocr(cropped_path)
+                score_crop = score_text(crop_text)
+                if score_crop > score_full:
+                    plate_text = crop_text
+                    ocr_conf = crop_conf
+                    ocr_engine = crop_engine
+                
             relative_cropped_path = os.path.relpath(cropped_path, base_dir).replace('\\', '/')
             
             if plate_text and len(plate_text) >= 4:
-                # If OCR found something in the fallback region
                 print(json.dumps({
                     "success": True,
                     "plate_text": plate_text,
@@ -205,7 +383,6 @@ def main():
                     "ocr_engine": ocr_engine
                 }))
             else:
-                # Genuine failure
                 print(json.dumps({
                     "success": False,
                     "error": "No license plate detected",
