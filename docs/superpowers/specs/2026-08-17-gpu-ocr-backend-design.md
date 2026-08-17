@@ -46,18 +46,30 @@ success." That reason no longer applies once models are loaded once in a
 persistent backend process — so EasyOCR is still dropped per the earlier
 decision, but for a different, now-explicit reason.
 
-**VLM fallback (gemma4:e2b via Ollama):** considered adding a small
-multimodal model as a fallback OCR path for the low-confidence cases the
-blacklist/height-filter hacks exist to paper over (a VLM can read "ignore
-the temporary-registration slogan" semantically, no hardcoded word list
-needed). Decision gated on a real latency spike (see plan Task 9) since a
-VLM is autoregressive generation, not a single forward pass like PaddleOCR —
-it could easily be slower than the whole rest of the pipeline. If adopted,
-it runs as a fallback only (when `score_text` on the PaddleOCR result is
-low), not on the primary path, to protect gate latency. `ocr_engine` would
-report `"gemma4-vlm"` when it fires, which flows into `PlateEntry.remarks`
-and the UI engine badge — the badge should account for a third possible
-value alongside `paddleocr`/`none`.
+**VLM fallback (gemma4:e2b via Ollama) — spiked, rejected.** Installed
+Ollama, pulled `gemma4:e2b` (7.2GB), ran one real inference against a
+cropped plate image with a known-correct ground truth ("CAR 5OS", per
+PaddleOCR on the same file). Measured via Ollama's own response metadata:
+
+| Phase | Time |
+|---|---|
+| Model load (one-time, cold) | ~100.1s |
+| Prompt/image eval | ~79.9s |
+| Generation (646 tokens — the model reasoned at length before answering) | ~32.0s |
+| **Total (cold)** | **~212s** |
+| **Steady-state (load excluded)** | **~112s** |
+
+`ollama ps` confirmed it ran 100% on GPU (not a CPU-offload artifact) — this
+is the model's actual speed on this hardware. And the answer was **wrong**:
+`"M R 2 6 5"` against a true value of `"CAR 5OS"`.
+
+~112s (best case, warm) vs. PaddleOCR's measured ~100-600ms is a ~200-1000x
+gap. Rejected outright, not just deprioritized to fallback-only — at that
+latency it fails even as an occasional fallback for a live gate camera, and
+it wasn't more accurate on the one case tested. Not pursuing further
+(different quantization, few-shot prompting, a smaller model) without a
+specific reason to revisit; noted here so the question doesn't get re-asked
+without this data. `ocr_engine` stays `paddleocr`/`none` — no third value.
 
 ## Non-goals
 
