@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Database\Schema\Blueprint;
 use App\Models\PlateEntry;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
@@ -12,30 +13,97 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
 class PlateOcrController extends Controller
 {
     /**
-     * Run YOLOv8 and PaddleOCR/EasyOCR detection on a given image file path
+     * Check if the GPU OCR backend is up; if not, spawn it and wait for it to become healthy.
+     *
+     * @return bool True if the backend is reachable within the timeout.
+     */
+    private function ensureBackendRunning()
+    {
+        $healthUrl = 'http://127.0.0.1:8600/health';
+
+        try {
+            $response = Http::timeout(1)->get($healthUrl);
+            if ($response->successful()) {
+                return true;
+            }
+        } catch (\Exception $e) {
+            // Not reachable yet, fall through to spawn it.
+        }
+
+        $scriptPath = base_path('scripts/backend_server.py');
+        $logPath = storage_path('logs/gpu_backend.log');
+
+        $descriptorspec = [
+            0 => ['pipe', 'r'],
+            1 => ['file', $logPath, 'a'],
+            2 => ['file', $logPath, 'a'],
+        ];
+
+        $process = proc_open(
+            ['py', $scriptPath],
+            $descriptorspec,
+            $pipes,
+            base_path(),
+            null,
+            ['bypass_shell' => true]
+        );
+
+        if (is_resource($process)) {
+            fclose($pipes[0]);
+        }
+
+        // First boot loads YOLO + PaddleOCR onto the GPU, give it up to 90s.
+        $deadline = microtime(true) + 90;
+        while (microtime(true) < $deadline) {
+            usleep(1000000);
+            try {
+                $response = Http::timeout(1)->get($healthUrl);
+                if ($response->successful()) {
+                    return true;
+                }
+            } catch (\Exception $e) {
+                // Still starting up, keep polling.
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Run YOLOv8 and PaddleOCR detection on a given image file path via the GPU backend.
      *
      * @param string $absolutePath Absolute path to the image
      * @return array
      */
     private function processPlateImage($absolutePath)
     {
-        // Prevent PHP maximum execution timeout
         @set_time_limit(120);
 
+        $startTime = microtime(true);
+
+        if (!$this->ensureBackendRunning()) {
+            $duration = round(microtime(true) - $startTime, 2);
+            $errorMsg = 'GPU OCR backend is not available.';
+            file_put_contents('php://stderr', "\n\n>>> [YOLOv8 & OCR Pipeline Execution Stats] <<<\n");
+            file_put_contents('php://stderr', "Image Path: {$absolutePath}\n");
+            file_put_contents('php://stderr', "Time Elapsed: {$duration} seconds\n");
+            file_put_contents('php://stderr', "Detection Result: FAILED - {$errorMsg}\n");
+            file_put_contents('php://stderr', ">>> ----------------------------------- <<<\n\n");
+            return [
+                'success' => false,
+                'error' => $errorMsg,
+            ];
+        }
+
         try {
-            $scriptPath = base_path('scripts/detect_plate.py');
-            
-            // In Windows, run using 'py'
-            $command = "py " . escapeshellarg($scriptPath) . " " . escapeshellarg($absolutePath);
-            
-            $startTime = microtime(true);
-            $output = shell_exec($command);
-            $endTime = microtime(true);
-            
-            $duration = round($endTime - $startTime, 2);
-            
-            if (empty($output)) {
-                $errorMsg = 'Python script returned empty output.';
+            $response = Http::timeout(30)->post('http://127.0.0.1:8600/detect', [
+                'image_path' => $absolutePath,
+            ]);
+
+            $duration = round(microtime(true) - $startTime, 2);
+
+            if (!$response->successful()) {
+                $errorMsg = 'Backend returned HTTP ' . $response->status();
                 file_put_contents('php://stderr', "\n\n>>> [YOLOv8 & OCR Pipeline Execution Stats] <<<\n");
                 file_put_contents('php://stderr', "Image Path: {$absolutePath}\n");
                 file_put_contents('php://stderr', "Time Elapsed: {$duration} seconds\n");
@@ -43,46 +111,42 @@ class PlateOcrController extends Controller
                 file_put_contents('php://stderr', ">>> ----------------------------------- <<<\n\n");
                 return [
                     'success' => false,
-                    'error' => $errorMsg
+                    'error' => $errorMsg,
                 ];
             }
-            
-            $result = json_decode($output, true);
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                $errorMsg = 'Failed to parse JSON output: ' . $output;
-                file_put_contents('php://stderr', "\n\n>>> [YOLOv8 & OCR Pipeline Execution Stats] <<<\n");
-                file_put_contents('php://stderr', "Image Path: {$absolutePath}\n");
-                file_put_contents('php://stderr', "Time Elapsed: {$duration} seconds\n");
-                file_put_contents('php://stderr', "Detection Result: FAILED - {$errorMsg}\n");
-                file_put_contents('php://stderr', ">>> ----------------------------------- <<<\n\n");
-                return [
-                    'success' => false,
-                    'error' => $errorMsg
-                ];
-            }
-            
+
+            $result = $response->json();
+
             $resultText = "Unknown";
             if ($result && isset($result['success']) && $result['success']) {
                 $resultText = "Plate: " . $result['plate_text'] . " (Conf: " . $result['confidence'] . "%, Engine: " . ($result['ocr_engine'] ?? 'paddleocr') . ")";
             } else {
                 $resultText = "FAILED - " . ($result['error'] ?? 'Unknown Error');
             }
-            
+
+            $telemetry = $result['telemetry'] ?? [];
+            $yoloMs = $telemetry['yolo_ms'] ?? 'n/a';
+            $paddleMs = $telemetry['paddle_ms'] ?? 'n/a';
+            $totalMs = $telemetry['total_ms'] ?? 'n/a';
+
             file_put_contents('php://stderr', "\n\n>>> [YOLOv8 & OCR Pipeline Execution Stats] <<<\n");
             file_put_contents('php://stderr', "Image Path: {$absolutePath}\n");
             file_put_contents('php://stderr', "Time Elapsed: {$duration} seconds\n");
+            file_put_contents('php://stderr', "YOLO: {$yoloMs}ms | Paddle: {$paddleMs}ms | Total: {$totalMs}ms\n");
             file_put_contents('php://stderr', "Detection Result: {$resultText}\n");
             file_put_contents('php://stderr', ">>> ----------------------------------- <<<\n\n");
-            
+
             return $result;
         } catch (\Exception $e) {
+            $duration = round(microtime(true) - $startTime, 2);
             file_put_contents('php://stderr', "\n\n>>> [YOLOv8 & OCR Pipeline Execution Stats] <<<\n");
             file_put_contents('php://stderr', "Image Path: {$absolutePath}\n");
+            file_put_contents('php://stderr', "Time Elapsed: {$duration} seconds\n");
             file_put_contents('php://stderr', "Detection Exception: " . $e->getMessage() . "\n");
             file_put_contents('php://stderr', ">>> ----------------------------------- <<<\n\n");
             return [
                 'success' => false,
-                'error' => 'Exception during plate detection: ' . $e->getMessage()
+                'error' => 'Exception during plate detection: ' . $e->getMessage(),
             ];
         }
     }

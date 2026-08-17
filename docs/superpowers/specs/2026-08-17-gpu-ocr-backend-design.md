@@ -29,6 +29,36 @@ needs reinstalling regardless of the GPU work.
   only, matching what was asked for.
 - App keeps working (degraded) if GPU or the backend is unavailable.
 
+## Amendment (2026-08-18)
+
+Mid-implementation, real uncommitted tuning was found already on disk in
+`scripts/detect_plate.py` (committed separately before this refactor touched
+it — see `integration_changes.md`): a temporary-plate-word blacklist in
+`sanitize_plate_number`, font-height filtering in `get_merged_lines`,
+`conf=0.05` on YOLO detection, and 18%/10% crop padding (up from 8%/8%).
+All of this is preserved in the extracted `plate_pipeline.py` — it was
+tuned against real failure cases (e.g. the clipped `N` in `NDP 9668`) and
+this refactor is not the place to re-litigate it.
+
+The original script also ran EasyOCR before PaddleOCR, justified in
+`integration_changes.md` as "bypasses the PaddleOCR CPU startup overhead on
+success." That reason no longer applies once models are loaded once in a
+persistent backend process — so EasyOCR is still dropped per the earlier
+decision, but for a different, now-explicit reason.
+
+**VLM fallback (gemma4:e2b via Ollama):** considered adding a small
+multimodal model as a fallback OCR path for the low-confidence cases the
+blacklist/height-filter hacks exist to paper over (a VLM can read "ignore
+the temporary-registration slogan" semantically, no hardcoded word list
+needed). Decision gated on a real latency spike (see plan Task 9) since a
+VLM is autoregressive generation, not a single forward pass like PaddleOCR —
+it could easily be slower than the whole rest of the pipeline. If adopted,
+it runs as a fallback only (when `score_text` on the PaddleOCR result is
+low), not on the primary path, to protect gate latency. `ocr_engine` would
+report `"gemma4-vlm"` when it fires, which flows into `PlateEntry.remarks`
+and the UI engine badge — the badge should account for a third possible
+value alongside `paddleocr`/`none`.
+
 ## Non-goals
 
 - No new OCR engines, no UI changes beyond what's needed to display/log
