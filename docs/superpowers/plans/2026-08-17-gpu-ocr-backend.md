@@ -154,7 +154,7 @@ git commit -m "feat: add Telemetry phase-timing helper"
 
 ### Task 2: Pure OCR-logic module (`plate_pipeline.py`, no models yet)
 
-Extracts the parts of `detect_plate.py` that don't touch YOLO/PaddleOCR objects, drops the EasyOCR branch of `get_merged_lines` (EasyOCR is being removed per the approved spec).
+Extracts the parts of `detect_plate.py` that don't touch YOLO/PaddleOCR objects. Source of truth is the file **as it exists on disk right now** (commit `5a02c6f`, tuned against real failures — see `integration_changes.md`), not an earlier version. This preserves: the temporary-plate-word blacklist, font-height filtering (drops text blocks under 45% of the tallest block's height), and the widened `y_threshold` (`max(40, img_height*0.20)`). Drops the EasyOCR branch of `get_merged_lines` (EasyOCR itself is being removed per the approved spec — see amendment in the design doc for why that's still correct).
 
 **Files:**
 - Create: `scripts/plate_pipeline.py`
@@ -179,6 +179,11 @@ def test_sanitize_plate_number_strips_symbols_and_uppercases():
 
 def test_sanitize_plate_number_collapses_whitespace_and_dashes():
     assert sanitize_plate_number("ab   --  12") == "AB 12"
+
+
+def test_sanitize_plate_number_removes_temporary_plate_words():
+    assert sanitize_plate_number("BAGONG PILIPINAS NDP 9668") == "NDP 9668"
+    assert sanitize_plate_number("REGISTERED NCR REGION") == ""
 
 
 def test_score_text_rewards_letter_number_mix_in_plate_length_range():
@@ -210,6 +215,16 @@ def test_get_merged_lines_separates_distinct_rows():
     ]
     merged = get_merged_lines(result_data, img_height=140)
     assert len(merged) == 2
+
+
+def test_get_merged_lines_filters_small_noise_by_height():
+    result_data = [
+        [[[0, 0], [100, 0], [100, 30], [0, 30]], ("NDP 9668", 0.9)],  # height 30
+        [[[0, 100], [30, 100], [30, 108], [0, 108]], ("NCR", 0.5)],   # height 8, < 45% of 30
+    ]
+    merged = get_merged_lines(result_data, img_height=140)
+    assert len(merged) == 1
+    assert merged[0][0] == "NDP 9668"
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -247,6 +262,25 @@ def download_model(model_path):
 
 def sanitize_plate_number(text):
     """Sanitize detected license plate text (keep alphanumeric, space, and hyphen, convert to uppercase)."""
+    text = text.upper()
+
+    # Filter out common temporary/slogan/regional words
+    blacklist = {
+        "REGISTERED", "REGISTRATION", "TEMPORARY", "CONDUCTION", "STICKER",
+        "DEALER", "MV", "FILE", "MVFILE", "FILENO", "NO", "FRONT", "REAR",
+        "MATATAG", "PILIPINAS", "BAGONG", "NCR", "REGION", "PHILIPPINES"
+    }
+
+    words = text.split()
+    filtered_words = []
+    for word in words:
+        # Strip non-alphanumeric to check against blacklist (e.g. "NO." -> "NO")
+        cleaned_word = re.sub(r'[^A-Z0-9]', '', word)
+        if cleaned_word not in blacklist:
+            filtered_words.append(word)
+
+    text = " ".join(filtered_words)
+
     cleaned = re.sub(r'[^a-zA-Z0-9\s-]', '', text)
     cleaned = re.sub(r'[\s-]+', ' ', cleaned)
     return cleaned.strip().upper()
@@ -285,9 +319,16 @@ def get_merged_lines(paddle_result, img_height):
     """Group PaddleOCR text blocks horizontally and merge them left-to-right.
 
     paddle_result format: [ [ [[x1,y1],[x2,y2],[x3,y3],[x4,y4]], ('text', conf) ], ... ]
+
+    Text blocks under 45% of the tallest block's height are dropped first
+    (filters small background noise/region labels like "NCR" that would
+    otherwise pollute the merged line or its length-based score).
     """
-    lines = []
-    y_threshold = max(30, img_height * 0.15)
+    if not paddle_result:
+        return []
+
+    parsed_items = []
+    max_height = 0.0
 
     for line in paddle_result:
         if not line or len(line) < 2:
@@ -301,18 +342,39 @@ def get_merged_lines(paddle_result, img_height):
         x_min = min(xs)
         y_min, y_max = min(ys), max(ys)
         y_center = (y_min + y_max) / 2
+        height = y_max - y_min
 
+        if height > max_height:
+            max_height = height
+        parsed_items.append({
+            'text': val,
+            'x_min': x_min,
+            'y_center': y_center,
+            'height': height,
+            'conf': conf,
+        })
+
+    height_threshold = max_height * 0.45
+    filtered_items = [item for item in parsed_items if item['height'] >= height_threshold]
+
+    if not filtered_items:
+        return []
+
+    lines = []
+    y_threshold = max(40, img_height * 0.20)
+
+    for item in filtered_items:
         added = False
         for group in lines:
-            if abs(group['y_center'] - y_center) < y_threshold:
-                group['items'].append({'text': val, 'x_min': x_min, 'conf': conf})
-                group['y_center'] = (group['y_center'] * (len(group['items']) - 1) + y_center) / len(group['items'])
+            if abs(group['y_center'] - item['y_center']) < y_threshold:
+                group['items'].append(item)
+                group['y_center'] = (group['y_center'] * (len(group['items']) - 1) + item['y_center']) / len(group['items'])
                 added = True
                 break
         if not added:
             lines.append({
-                'y_center': y_center,
-                'items': [{'text': val, 'x_min': x_min, 'conf': conf}]
+                'y_center': item['y_center'],
+                'items': [item],
             })
 
     merged_texts = []
@@ -328,7 +390,7 @@ def get_merged_lines(paddle_result, img_height):
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `py -m pytest scripts/tests/test_plate_pipeline.py -v`
-Expected: 6 passed
+Expected: 8 passed
 
 - [ ] **Step 5: Commit**
 
@@ -377,10 +439,26 @@ Expected: `torch cuda available: True`, device name shows the RTX 3060, `paddle 
 
 If either prints `False`: stop and re-check the driver/CUDA version against the installed wheel's CUDA build (do not proceed to Task 4-5 until this passes — the whole point of the plan is GPU execution, and the code has a CPU fallback specifically so it stays working while this gets sorted out).
 
+**Known gap hit during implementation:** `import paddle` failed with
+`OSError: [WinError 127] ... loading ".../nvidia/cudnn/bin/cudnn_cnn64_9.dll"`.
+This is a documented cuDNN 9-on-Windows issue — `zlibwapi.dll` is a runtime
+dependency of the cuDNN DLLs that NVIDIA does not redistribute in the pip
+package (licensing). Fix:
+```bash
+# Download zlib's official Windows binaries, extract zlibwapi.dll, and drop
+# it next to the cudnn DLLs (already on paddle's DLL search path, since
+# that's where cudnn_cnn64_9.dll itself loads from):
+# 1. Download http://www.winimage.com/zLibDll/zlib123dllx64.zip
+# 2. Extract dll_x64/zlibwapi.dll
+# 3. Copy it to: <site-packages>/nvidia/cudnn/bin/zlibwapi.dll
+```
+After this, `paddle.device.is_compiled_with_cuda()` → `True` and
+`paddle.device.get_device()` → `gpu:0`.
+
 - [ ] **Step 4: Re-run Task 1 and Task 2 tests to confirm the reinstall didn't break anything unrelated**
 
 Run: `py -m pytest scripts/tests -v`
-Expected: 10 passed
+Expected: 12 passed
 
 No commit needed — this task only changes installed packages, not files in the repo (`pip freeze`/`requirements.txt` isn't part of this project's tracked setup).
 
@@ -422,9 +500,10 @@ def run_paddle_ocr(paddle_ocr, image_path, telemetry):
         if merged_lines:
             best_text, best_conf, best_score = "", 0.0, -999.0
             for line_text, line_conf in merged_lines:
-                scr = score_text(line_text)
+                sanitized_line = sanitize_plate_number(line_text)
+                scr = score_text(sanitized_line)
                 if scr > best_score:
-                    best_score, best_text, best_conf = scr, line_text, line_conf
+                    best_score, best_text, best_conf = scr, sanitized_line, line_conf
             if best_text:
                 text, confidence = best_text, best_conf
 
@@ -445,7 +524,10 @@ def detect_and_recognize(yolo_model, paddle_ocr, image_path, base_dir, telemetry
     h, w, _ = img.shape
 
     with telemetry.phase("yolo"):
-        results = yolo_model(img, device=device, verbose=False)[0]
+        # conf=0.05 (down from ultralytics default 0.25): close-up vehicle
+        # captures dominate the frame and score lower than the training
+        # distribution expects, so the default threshold was missing them.
+        results = yolo_model(img, device=device, verbose=False, conf=0.05)[0]
 
     best_box = None
     best_conf = 0.0
@@ -460,8 +542,10 @@ def detect_and_recognize(yolo_model, paddle_ocr, image_path, base_dir, telemetry
 
     if best_box is not None:
         x1, y1, x2, y2 = map(int, best_box.xyxy[0])
-        pad_w = int((x2 - x1) * 0.08)
-        pad_h = int((y2 - y1) * 0.08)
+        # 18% width / 10% height padding (up from 8%/8%): prevents edge
+        # characters (e.g. the "N" in "NDP 9668") from being cropped off.
+        pad_w = int((x2 - x1) * 0.18)
+        pad_h = int((y2 - y1) * 0.10)
         x1_crop = max(0, x1 - pad_w)
         y1_crop = max(0, y1 - pad_h)
         x2_crop = min(w, x2 + pad_w)
@@ -568,7 +652,7 @@ Expected: a dict with `"success": True` (or a reasonable `False` for a bad image
 - [ ] **Step 3: Re-run the full pytest suite to confirm the pure-function tests still pass unchanged**
 
 Run: `py -m pytest scripts/tests -v`
-Expected: 10 passed
+Expected: 12 passed
 
 - [ ] **Step 4: Commit**
 
@@ -1003,7 +1087,7 @@ git commit -m "feat: call GPU OCR backend over HTTP instead of shell_exec per re
 - [ ] **Step 1: Full pytest suite**
 
 Run: `py -m pytest scripts/tests -v`
-Expected: 10 passed
+Expected: 12 passed
 
 - [ ] **Step 2: Exit-gate flow**
 
