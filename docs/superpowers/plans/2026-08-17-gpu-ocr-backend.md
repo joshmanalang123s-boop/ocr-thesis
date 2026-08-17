@@ -390,7 +390,7 @@ def get_merged_lines(paddle_result, img_height):
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `py -m pytest scripts/tests/test_plate_pipeline.py -v`
-Expected: 8 passed
+Expected: 9 passed
 
 - [ ] **Step 5: Commit**
 
@@ -439,26 +439,57 @@ Expected: `torch cuda available: True`, device name shows the RTX 3060, `paddle 
 
 If either prints `False`: stop and re-check the driver/CUDA version against the installed wheel's CUDA build (do not proceed to Task 4-5 until this passes — the whole point of the plan is GPU execution, and the code has a CPU fallback specifically so it stays working while this gets sorted out).
 
-**Known gap hit during implementation:** `import paddle` failed with
-`OSError: [WinError 127] ... loading ".../nvidia/cudnn/bin/cudnn_cnn64_9.dll"`.
-This is a documented cuDNN 9-on-Windows issue — `zlibwapi.dll` is a runtime
-dependency of the cuDNN DLLs that NVIDIA does not redistribute in the pip
-package (licensing). Fix:
-```bash
-# Download zlib's official Windows binaries, extract zlibwapi.dll, and drop
-# it next to the cudnn DLLs (already on paddle's DLL search path, since
-# that's where cudnn_cnn64_9.dll itself loads from):
-# 1. Download http://www.winimage.com/zLibDll/zlib123dllx64.zip
-# 2. Extract dll_x64/zlibwapi.dll
-# 3. Copy it to: <site-packages>/nvidia/cudnn/bin/zlibwapi.dll
-```
-After this, `paddle.device.is_compiled_with_cuda()` → `True` and
-`paddle.device.get_device()` → `gpu:0`.
+**Known gap hit during implementation, in two parts:**
+
+1. Bare `import paddle` initially failed with `OSError: [WinError 127] ...
+   loading ".../nvidia/cudnn/bin/cudnn_cnn64_9.dll"`. Tried the documented
+   fix (paddle's bundled cuDNN 9 needs `zlibwapi.dll`, which NVIDIA doesn't
+   redistribute for licensing reasons — download from
+   `http://www.winimage.com/zLibDll/zlib123dllx64.zip`, extract
+   `dll_x64/zlibwapi.dll`, drop it in `<site-packages>/nvidia/cudnn/bin/`).
+   This made `import paddle` alone succeed.
+
+2. But `import torch; import paddle` **in the same process** still failed —
+   torch and paddle each bundle a private copy of cuDNN 9, and whichever
+   loads its `cudnn_cnn64_9.dll` *second* fails: Windows resolves that DLL's
+   own dependencies (e.g. `cudnn64_9.dll`) against modules already loaded
+   under the same bare filename, and cross-library version mismatches raise
+   the same `WinError 127`. Confirmed empirically: both `torch→paddle` and
+   `paddle→torch` orderings failed one-directionally (whichever imported
+   second broke) — a genuine cross-process DLL collision, not a search-path
+   ordering bug.
+
+   **Actual fix:** disable paddle's own bundled cuDNN directory entirely so
+   it falls back to torch's already-loaded copy (confirmed working — same
+   process, both on GPU, no version conflict):
+   ```bash
+   # Rename (don't delete) paddle's private cudnn dir so paddle's loader
+   # can't find its own cudnn_cnn64_9.dll and instead resolves the bare
+   # DLL name against torch's already-loaded copy:
+   mv "<site-packages>/nvidia/cudnn/bin" "<site-packages>/nvidia/cudnn/bin_disabled_use_torch_cudnn"
+   ```
+   This makes the `zlibwapi.dll` copy from step 1 irrelevant (it lives in
+   the now-renamed-away directory) — not harmful, just dead weight.
+
+   **This fix lives outside the repo and is fragile:** it's a rename in
+   site-packages, not tracked by git, doesn't survive a fresh venv/another
+   machine/`pip install --force-reinstall paddlepaddle-gpu` (which recreates
+   `nvidia/cudnn/bin` and silently re-breaks the import). It also requires
+   torch to import *before* any `paddleocr`/`paddle` import in the process —
+   `plate_pipeline.py` now does `import torch` at module load time
+   specifically to guarantee that ordering regardless of what
+   `backend_server.py`/`detect_plate.py` import first. If this is ever
+   redeployed on another machine, redo the directory rename there too.
+
+After both fixes, `paddle.device.is_compiled_with_cuda()` → `True` and
+`paddle.device.get_device()` → `gpu:0`, **and** `import torch; import paddle`
+together in one process works — verified via the actual Task 4 pipeline
+script, not just bare imports.
 
 - [ ] **Step 4: Re-run Task 1 and Task 2 tests to confirm the reinstall didn't break anything unrelated**
 
 Run: `py -m pytest scripts/tests -v`
-Expected: 12 passed
+Expected: 13 passed
 
 No commit needed — this task only changes installed packages, not files in the repo (`pip freeze`/`requirements.txt` isn't part of this project's tracked setup).
 
@@ -467,6 +498,23 @@ No commit needed — this task only changes installed packages, not files in the
 ### Task 4: Model-invoking pipeline functions
 
 Adds the YOLO+PaddleOCR-calling functions to `plate_pipeline.py`. These need real models and a real image, so they're verified manually against a sample image already in `storage/app/public/plates/` rather than mocked — mocking ultralytics/PaddleOCR objects would test the mock, not the pipeline.
+
+**Superseded during implementation — see commit `ca1fe15`, not the code below:**
+`.ocr()` on paddleocr 3.7 returns a `paddlex.inference.pipelines.ocr.result.OCRResult`
+(`result[0]['rec_texts']`/`['rec_scores']`/`['rec_boxes']`, `rec_boxes` rows
+`[x1,y1,x2,y2]`), not the legacy nested `[bbox, (text, conf)]` list this
+section assumed. That legacy branch was carried over faithfully from the
+original `detect_plate.py`, but it was dead code there too — EasyOCR always
+ran first and won, so PaddleOCR's actual output shape was never exercised.
+Discovered by running this task's own verification step and getting a real
+`IndexError`, not by inspection. `get_merged_lines`'s signature became
+`get_merged_lines(rec_texts, rec_scores, rec_boxes, img_height)`; switched
+`.ocr()` → `.predict()` (identical shape, no deprecation warning). The
+filtering/grouping/scoring logic itself didn't change — only how the raw
+result gets parsed into it. Verified against real multi-line samples
+already in `storage/app/public/plates/`, including the "REGISTERED / RO
+B097 / SUBAPU / PANG / WTLNO..." temporary-plate case the blacklist exists
+for — correctly extracts `RO B097`.
 
 **Files:**
 - Modify: `scripts/plate_pipeline.py` (append to end of file)
@@ -652,7 +700,7 @@ Expected: a dict with `"success": True` (or a reasonable `False` for a bad image
 - [ ] **Step 3: Re-run the full pytest suite to confirm the pure-function tests still pass unchanged**
 
 Run: `py -m pytest scripts/tests -v`
-Expected: 12 passed
+Expected: 13 passed
 
 - [ ] **Step 4: Commit**
 
@@ -664,6 +712,19 @@ git commit -m "feat: add GPU-aware YOLOv8 detect + PaddleOCR recognize pipeline"
 ---
 
 ### Task 5: FastAPI backend server
+
+**Superseded during implementation — see commit `3961ed1`, not the code below:**
+constructs `PaddleOCR(..., use_doc_orientation_classify=False,
+use_doc_unwarping=False, use_textline_orientation=False)` — paddleocr 3.x
+enables three extra PaddleX pipeline stages by default (doc orientation
+classify, doc unwarping, textline orientation) that the original
+`use_angle_cls=False` was implicitly trying to skip; without disabling
+them explicitly, every OCR call loads and runs three extra models a fixed
+gate camera doesn't need. Also runs one dummy YOLO inference at the end of
+`_load_models()` (first CUDA call on a freshly loaded model pays a
+multi-second JIT/kernel-compile tax — paying it once at startup instead of
+on whichever real request happens to land first, confirmed by measurement:
+cold `yolo_ms` was ~4700ms, warm ~150-210ms).
 
 **Files:**
 - Create: `scripts/backend_server.py`
@@ -804,6 +865,8 @@ git commit -m "feat: add persistent FastAPI backend loading YOLOv8+PaddleOCR onc
 ### Task 6: Slim `detect_plate.py` to a CLI wrapper
 
 Keeps a standalone command-line entry point for manual testing/debugging, no longer used by PHP after Task 7.
+
+**Superseded during implementation — see commit `c385509`, not the code below:** same PaddleOCR construction kwargs as Task 5 (`use_doc_orientation_classify=False` etc.), and imports `plate_pipeline` (which imports `torch`) before anything paddle-related, for the same cuDNN-ordering reason noted in Task 3.
 
 **Files:**
 - Modify: `scripts/detect_plate.py` (full rewrite)
@@ -1087,7 +1150,7 @@ git commit -m "feat: call GPU OCR backend over HTTP instead of shell_exec per re
 - [ ] **Step 1: Full pytest suite**
 
 Run: `py -m pytest scripts/tests -v`
-Expected: 12 passed
+Expected: 13 passed
 
 - [ ] **Step 2: Exit-gate flow**
 
