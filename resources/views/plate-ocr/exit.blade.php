@@ -415,30 +415,19 @@ class ExitScanner {
         ctx.scale(-1, 1);
         ctx.drawImage(this.video, -this.canvas.width, 0);
 
-        // Convert to blob and submit
-        this.canvas.toBlob(async (blob) => {
-            const formData = new FormData();
-            formData.append('image', blob, 'exit-plate-capture.jpg');
-            formData.append('_token', '{{ csrf_token() }}');
+        // Convert to blob and submit as a real form post so the browser
+        // navigates to the rendered result page (POST /plate-ocr/exit/detect
+        // returns a view, not a redirect — fetch()'s response.url doesn't
+        // point at the result page).
+        this.canvas.toBlob((blob) => {
+            const file = new File([blob], 'exit-plate-capture.jpg', { type: 'image/jpeg' });
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
 
-            try {
-                const response = await fetch('{{ route("plate-ocr.exit-detect") }}', {
-                    method: 'POST',
-                    body: formData
-                });
+            const fileInput = document.getElementById('plateUpload');
+            fileInput.files = dataTransfer.files;
 
-                if (response.ok) {
-                    this.showStatus('Exit detection successful! Redirecting...', 'success');
-                    setTimeout(() => {
-                        window.location.href = response.url;
-                    }, 500);
-                } else {
-                    throw new Error('Exit detection failed');
-                }
-            } catch (error) {
-                this.showStatus('Error: ' + error.message, 'error');
-                this.isCapturing = false;
-            }
+            document.getElementById('uploadForm').submit();
         }, 'image/jpeg', 0.95);
     }
 
