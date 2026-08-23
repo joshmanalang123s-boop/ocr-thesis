@@ -3,19 +3,6 @@ import re
 import sys
 import urllib.request
 
-# Import order matters on Windows: torch and paddlepaddle-gpu each bundle
-# their own private copy of cuDNN 9. Whichever loads its cuDNN DLLs into the
-# process second fails (WinError 127, "procedure not found") because Windows
-# resolves same-named DLL dependencies against the already-loaded module.
-# Fix in place: this machine's paddle install has its own
-# nvidia/cudnn/bin renamed to bin_disabled_use_torch_cudnn, so paddle falls
-# back to torch's already-loaded cuDNN instead of loading a conflicting copy
-# of its own. That only works if torch loads first — importing it here,
-# before any paddle/paddleocr import anywhere in this process, guarantees
-# that regardless of what the caller (backend_server.py / detect_plate.py)
-# imports first.
-import torch  # noqa: F401
-
 
 def download_model(model_path):
     """Download the license plate detection YOLOv8 weights from Hugging Face if not present."""
@@ -89,110 +76,36 @@ def score_text(text):
     return score
 
 
-def get_merged_lines(rec_texts, rec_scores, rec_boxes, img_height):
-    """Group PaddleOCR text blocks horizontally and merge them left-to-right.
+def run_fast_plate_ocr(ocr_recognizer, image_path, telemetry):
+    """Run fast-plate-ocr on an image path, return (sanitized_text, confidence).
 
-    rec_texts/rec_scores/rec_boxes are the parallel arrays PaddleOCR 3.x
-    returns per detected line (paddlex OCRResult: result['rec_texts'],
-    result['rec_scores'], result['rec_boxes']). rec_boxes rows are
-    [x1, y1, x2, y2].
-
-    Text blocks under 45% of the tallest block's height are dropped first
-    (filters small background noise/region labels like "NCR" that would
-    otherwise pollute the merged line or its length-based score).
+    Unlike PaddleOCR, fast-plate-ocr's CCT models classify the whole cropped
+    image directly into a single fixed-length plate string in one pass -
+    no separate text-detection step, so there's no multi-line output to
+    merge or filter (it copes with surrounding noise like temp-plate stamps
+    on its own; verified against real crops during the engine spike).
     """
-    if len(rec_texts) == 0:
-        return []
-
-    parsed_items = []
-    max_height = 0.0
-
-    for text, conf, box in zip(rec_texts, rec_scores, rec_boxes):
-        x1, y1, x2, y2 = box
-        x_min = float(x1)
-        y_center = (float(y1) + float(y2)) / 2
-        height = float(y2) - float(y1)
-
-        if height > max_height:
-            max_height = height
-        parsed_items.append({
-            'text': text,
-            'x_min': x_min,
-            'y_center': y_center,
-            'height': height,
-            'conf': conf,
-        })
-
-    height_threshold = max_height * 0.45
-    filtered_items = [item for item in parsed_items if item['height'] >= height_threshold]
-
-    if not filtered_items:
-        return []
-
-    lines = []
-    y_threshold = max(40, img_height * 0.20)
-
-    for item in filtered_items:
-        added = False
-        for group in lines:
-            if abs(group['y_center'] - item['y_center']) < y_threshold:
-                group['items'].append(item)
-                group['y_center'] = (group['y_center'] * (len(group['items']) - 1) + item['y_center']) / len(group['items'])
-                added = True
-                break
-        if not added:
-            lines.append({
-                'y_center': item['y_center'],
-                'items': [item],
-            })
-
-    merged_texts = []
-    for group in lines:
-        sorted_items = sorted(group['items'], key=lambda x: x['x_min'])
-        merged_text = " ".join([item['text'] for item in sorted_items])
-        avg_conf = sum([item['conf'] for item in sorted_items]) / len(sorted_items)
-        merged_texts.append((merged_text, avg_conf))
-
-    return merged_texts
-
-
-def run_paddle_ocr(paddle_ocr, image_path, telemetry):
-    """Run PaddleOCR on an image path, return (sanitized_text, confidence)."""
-    import cv2
-
-    img = cv2.imread(image_path)
-    if img is None:
-        return "", 0.0
-    img_height = img.shape[0]
-
-    with telemetry.phase("paddle"):
+    with telemetry.phase("ocr"):
         try:
-            result = paddle_ocr.predict(image_path)
+            results = ocr_recognizer.run(image_path, return_confidence=True)
         except Exception:
             import traceback
             traceback.print_exc(file=sys.stderr)
-            result = None
+            results = []
 
     text = ""
     confidence = 0.0
-    if result and len(result) > 0 and result[0] is not None:
-        r = result[0]
-        merged_lines = get_merged_lines(r['rec_texts'], r['rec_scores'], r['rec_boxes'], img_height)
-        if merged_lines:
-            best_text, best_conf, best_score = "", 0.0, -999.0
-            for line_text, line_conf in merged_lines:
-                sanitized_line = sanitize_plate_number(line_text)
-                scr = score_text(sanitized_line)
-                if scr > best_score:
-                    best_score, best_text, best_conf = scr, sanitized_line, line_conf
-            if best_text:
-                text, confidence = best_text, best_conf
+    if results and results[0].plate:
+        pred = results[0]
+        text = pred.plate
+        if pred.char_probs is not None and len(pred.char_probs) > 0:
+            confidence = float(sum(pred.char_probs) / len(pred.char_probs))
 
     return sanitize_plate_number(text), confidence
 
 
-def detect_and_recognize(yolo_model, paddle_ocr, image_path, base_dir, telemetry, device):
-    """Run the full YOLOv8 detect -> crop -> PaddleOCR pipeline on one image.
+def detect_and_recognize(yolo_model, ocr_recognizer, image_path, base_dir, telemetry, device):
+    """Run the full YOLOv8 detect -> crop -> fast-plate-ocr pipeline on one image.
 
     Mirrors the original detect_plate.py main() logic, minus EasyOCR.
     """
@@ -235,10 +148,10 @@ def detect_and_recognize(yolo_model, paddle_ocr, image_path, base_dir, telemetry
         cropped_img = img[y1_crop:y2_crop, x1_crop:x2_crop]
         cv2.imwrite(cropped_path, cropped_img)
 
-        plate_text, ocr_conf = run_paddle_ocr(paddle_ocr, cropped_path, telemetry)
+        plate_text, ocr_conf = run_fast_plate_ocr(ocr_recognizer, cropped_path, telemetry)
         score_crop = score_text(plate_text)
         if score_crop < 5.0:
-            full_text, full_conf = run_paddle_ocr(paddle_ocr, image_path, telemetry)
+            full_text, full_conf = run_fast_plate_ocr(ocr_recognizer, image_path, telemetry)
             score_full = score_text(full_text)
             if score_full > score_crop and score_full >= 4.0:
                 plate_text, ocr_conf = full_text, full_conf
@@ -258,7 +171,7 @@ def detect_and_recognize(yolo_model, paddle_ocr, image_path, base_dir, telemetry
             "cropped_path": relative_cropped_path,
             "detection_confidence": round(best_conf * 100, 2),
             "ocr_confidence": round(ocr_conf * 100, 2),
-            "ocr_engine": "paddleocr" if plate_text != "UNKNOWN" else "none",
+            "ocr_engine": "fastplateocr" if plate_text != "UNKNOWN" else "none",
         }
     else:
         crop_h, crop_w = int(h * 0.3), int(w * 0.5)
@@ -266,11 +179,11 @@ def detect_and_recognize(yolo_model, paddle_ocr, image_path, base_dir, telemetry
         cropped_img = img[y1_crop:y1_crop + crop_h, x1_crop:x1_crop + crop_w]
         cv2.imwrite(cropped_path, cropped_img)
 
-        plate_text, ocr_conf = run_paddle_ocr(paddle_ocr, image_path, telemetry)
+        plate_text, ocr_conf = run_fast_plate_ocr(ocr_recognizer, image_path, telemetry)
         score_full = score_text(plate_text)
 
         if score_full < 4.0:
-            crop_text, crop_conf = run_paddle_ocr(paddle_ocr, cropped_path, telemetry)
+            crop_text, crop_conf = run_fast_plate_ocr(ocr_recognizer, cropped_path, telemetry)
             score_crop = score_text(crop_text)
             if score_crop > score_full:
                 plate_text, ocr_conf = crop_text, crop_conf
@@ -285,7 +198,7 @@ def detect_and_recognize(yolo_model, paddle_ocr, image_path, base_dir, telemetry
                 "cropped_path": relative_cropped_path,
                 "detection_confidence": 0.0,
                 "ocr_confidence": round(ocr_conf * 100, 2),
-                "ocr_engine": "paddleocr",
+                "ocr_engine": "fastplateocr",
             }
         else:
             result = {

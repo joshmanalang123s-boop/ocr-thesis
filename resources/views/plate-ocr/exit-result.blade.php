@@ -300,7 +300,7 @@
                     <span style="display: flex; align-items: center; gap: 4px;">
                         <i class="ri-translate-2" style="color: #10B981;"></i> 
                         <strong>OCR:</strong> 
-                        <span style="background: #ECFDF5; color: #047857; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">{{ strtoupper($ocrEngine ?? 'paddleocr') }}</span>
+                        <span style="background: #ECFDF5; color: #047857; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">{{ strtoupper($ocrEngine ?? 'fastplateocr') }}</span>
                     </span>
                 </div>
                 

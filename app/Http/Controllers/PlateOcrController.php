@@ -52,7 +52,7 @@ class PlateOcrController extends Controller
             fclose($pipes[0]);
         }
 
-        // First boot loads YOLO + PaddleOCR onto the GPU, give it up to 90s.
+        // First boot loads YOLO onto the GPU + fast-plate-ocr, give it up to 90s.
         $deadline = microtime(true) + 90;
         while (microtime(true) < $deadline) {
             usleep(1000000);
@@ -70,7 +70,7 @@ class PlateOcrController extends Controller
     }
 
     /**
-     * Run YOLOv8 and PaddleOCR detection on a given image file path via the GPU backend.
+     * Run YOLOv8 detection and fast-plate-ocr recognition on a given image file path via the GPU backend.
      *
      * @param string $absolutePath Absolute path to the image
      * @return array
@@ -119,20 +119,20 @@ class PlateOcrController extends Controller
 
             $resultText = "Unknown";
             if ($result && isset($result['success']) && $result['success']) {
-                $resultText = "Plate: " . $result['plate_text'] . " (Conf: " . $result['confidence'] . "%, Engine: " . ($result['ocr_engine'] ?? 'paddleocr') . ")";
+                $resultText = "Plate: " . $result['plate_text'] . " (Conf: " . $result['confidence'] . "%, Engine: " . ($result['ocr_engine'] ?? 'fastplateocr') . ")";
             } else {
                 $resultText = "FAILED - " . ($result['error'] ?? 'Unknown Error');
             }
 
             $telemetry = $result['telemetry'] ?? [];
             $yoloMs = $telemetry['yolo_ms'] ?? 'n/a';
-            $paddleMs = $telemetry['paddle_ms'] ?? 'n/a';
+            $ocrMs = $telemetry['ocr_ms'] ?? 'n/a';
             $totalMs = $telemetry['total_ms'] ?? 'n/a';
 
             file_put_contents('php://stderr', "\n\n>>> [YOLOv8 & OCR Pipeline Execution Stats] <<<\n");
             file_put_contents('php://stderr', "Image Path: {$absolutePath}\n");
             file_put_contents('php://stderr', "Time Elapsed: {$duration} seconds\n");
-            file_put_contents('php://stderr', "YOLO: {$yoloMs}ms | Paddle: {$paddleMs}ms | Total: {$totalMs}ms\n");
+            file_put_contents('php://stderr', "YOLO: {$yoloMs}ms | OCR: {$ocrMs}ms | Total: {$totalMs}ms\n");
             file_put_contents('php://stderr', "Detection Result: {$resultText}\n");
             file_put_contents('php://stderr', ">>> ----------------------------------- <<<\n\n");
 
@@ -188,7 +188,7 @@ class PlateOcrController extends Controller
 
             $absolutePath = storage_path("app/public/" . $path);
 
-            // Run YOLOv8 + PaddleOCR detection
+            // Run YOLOv8 + fast-plate-ocr detection
             $ocrResult = $this->processPlateImage($absolutePath);
 
             $plateNumber = "UNKNOWN";
@@ -198,7 +198,7 @@ class PlateOcrController extends Controller
             if ($ocrResult && isset($ocrResult['success']) && $ocrResult['success']) {
                 $plateNumber = $ocrResult['plate_text'];
                 $confidence = $ocrResult['confidence'];
-                $ocrEngine = $ocrResult['ocr_engine'] ?? 'paddleocr';
+                $ocrEngine = $ocrResult['ocr_engine'] ?? 'fastplateocr';
             } else {
                 logger()->warning("YOLO exit detection failed: " . ($ocrResult['error'] ?? 'Unknown error'));
                 $plateNumber = $this->detectPlateNumber($file);
@@ -341,7 +341,7 @@ class PlateOcrController extends Controller
 
             $absolutePath = storage_path("app/public/" . $path);
 
-            // Run YOLOv8 + PaddleOCR detection
+            // Run YOLOv8 + fast-plate-ocr detection
             $ocrResult = $this->processPlateImage($absolutePath);
 
             $plateNumber = "UNKNOWN";
@@ -351,7 +351,7 @@ class PlateOcrController extends Controller
             if ($ocrResult && isset($ocrResult['success']) && $ocrResult['success']) {
                 $plateNumber = $ocrResult['plate_text'];
                 $confidence = $ocrResult['confidence'];
-                $ocrEngine = $ocrResult['ocr_engine'] ?? 'paddleocr';
+                $ocrEngine = $ocrResult['ocr_engine'] ?? 'fastplateocr';
             } else {
                 logger()->warning("YOLO detection failed: " . ($ocrResult['error'] ?? 'Unknown error'));
                 $plateNumber = $this->detectPlateNumber($file);
@@ -716,7 +716,7 @@ class PlateOcrController extends Controller
 
             file_put_contents($tempPath, $imageData);
 
-            // Run YOLOv8 + PaddleOCR detection
+            // Run YOLOv8 + fast-plate-ocr detection
             $ocrResult = $this->processPlateImage($tempPath);
 
             $plateNumber = "UNKNOWN";
@@ -727,7 +727,7 @@ class PlateOcrController extends Controller
             if ($ocrResult && isset($ocrResult['success']) && $ocrResult['success']) {
                 $plateNumber = $ocrResult['plate_text'];
                 $confidence = $ocrResult['confidence'];
-                $ocrEngine = $ocrResult['ocr_engine'] ?? 'paddleocr';
+                $ocrEngine = $ocrResult['ocr_engine'] ?? 'fastplateocr';
                 $croppedPath = $ocrResult['cropped_path'] ?? null;
             } else {
                 $plateNumber = $this->detectPlateNumber(null);
