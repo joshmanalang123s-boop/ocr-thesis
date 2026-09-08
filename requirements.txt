@@ -1,0 +1,20 @@
+# GPU OCR Backend Dependencies
+# Install: pip install -r requirements.txt
+# For GPU torch: pip install torch==2.9.1+cu126 --index-url https://download.pytorch.org/whl/cu126
+
+# Web server
+fastapi==0.141.1
+uvicorn==0.52.4
+pydantic==2.13.5
+
+# YOLOv8 plate detection
+ultralytics==8.4.143
+torch==2.14.0
+
+# License plate OCR
+fast-plate-ocr==1.1.0
+onnxruntime==1.29.0
+
+# Image processing
+opencv-python-headless==5.0.0.93
+numpy==2.3.5
