@@ -39,8 +39,10 @@ class PlateOcrController extends Controller
             2 => ['file', $logPath, 'a'],
         ];
 
+        $pythonPath = 'C:\\Users\\Josh\\AppData\\Local\\Programs\\Python\\Python313\\python.exe';
+
         $process = proc_open(
-            ['py', $scriptPath],
+            [$pythonPath, $scriptPath],
             $descriptorspec,
             $pipes,
             base_path(),
@@ -62,7 +64,7 @@ class PlateOcrController extends Controller
                     return true;
                 }
             } catch (\Exception $e) {
-                // Still starting up, keep polling.
+                // Still prostarting up, keep polling.
             }
         }
 
