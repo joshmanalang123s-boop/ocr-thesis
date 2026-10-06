@@ -373,17 +373,31 @@
                         <td>
                             <div style="display: flex; align-items: center; gap: 0.75rem;">
                                 @php
+                                    $displayImage = null;
                                     $croppedPath = $entry->entry_image_path ? str_replace('.', '_cropped.', $entry->entry_image_path) : null;
-                                    $hasCropped = $croppedPath && \Illuminate\Support\Facades\Storage::disk('public')->exists($croppedPath);
+                                    $exitCroppedPath = $entry->exit_image_path ? str_replace('.', '_cropped.', $entry->exit_image_path) : null;
+
+                                    if ($croppedPath && \Illuminate\Support\Facades\Storage::disk('public')->exists($croppedPath)) {
+                                        $displayImage = asset('storage/' . $croppedPath);
+                                    } elseif ($entry->entry_image_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($entry->entry_image_path)) {
+                                        $displayImage = asset('storage/' . $entry->entry_image_path);
+                                    } elseif ($exitCroppedPath && \Illuminate\Support\Facades\Storage::disk('public')->exists($exitCroppedPath)) {
+                                        $displayImage = asset('storage/' . $exitCroppedPath);
+                                    } elseif ($entry->exit_image_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($entry->exit_image_path)) {
+                                        $displayImage = asset('storage/' . $entry->exit_image_path);
+                                    }
                                 @endphp
                                 
-                                @if($hasCropped)
-                                    <div style="background: #0F172A; border-radius: 4px; padding: 2px; border: 1px solid #334155; width: 80px; height: 35px; display: flex; align-items: center; justify-content: center; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.15);" title="YOLOv8 Detected Plate Crop">
-                                        <img src="{{ asset('storage/' . $croppedPath) }}" alt="Crop" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                                @if($displayImage)
+                                    <div class="plate-thumbnail-container" onclick="openPlatePreview('{{ $displayImage }}', '{{ $entry->plate_number }}')" title="Click to view plate photo for {{ $entry->plate_number }}">
+                                        <img src="{{ $displayImage }}" alt="Plate Photo {{ $entry->plate_number }}" class="plate-thumbnail-img">
                                     </div>
                                 @else
-                                    <div style="background: #F1F5F9; border-radius: 4px; border: 1px dashed #CBD5E1; width: 80px; height: 35px; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; color: #94A3B8;" title="No crop available">
-                                        <span>No crop</span>
+                                    <div class="plate-thumbnail-container" title="Plate: {{ $entry->plate_number }}">
+                                        <div class="plate-graphic-fallback">
+                                            <span class="plate-sub-text">AUTOTRACE</span>
+                                            <span class="plate-main-text">{{ $entry->plate_number }}</span>
+                                        </div>
                                     </div>
                                 @endif
                                 

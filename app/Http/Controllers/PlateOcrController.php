@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Database\Schema\Blueprint;
 use App\Models\PlateEntry;
+use App\Models\ParkingSession;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class PlateOcrController extends Controller
@@ -260,6 +261,7 @@ class PlateOcrController extends Controller
                 $minutes = 60; // Default assumption
 
                 $entry = PlateEntry::create([
+                    "session_id" => ParkingSession::getActive()->id,
                     "plate_number" => $plateNumber,
                     "entry_confidence" => 0.00,
                     "exit_confidence" => $confidence,
@@ -278,7 +280,7 @@ class PlateOcrController extends Controller
                 $duration = null;
             }
 
-            $formattedFee = "$" . number_format($totalFeeAmount, 2);
+            $formattedFee = "₱" . number_format($totalFeeAmount, 2);
 
             // Generate Payment Verification QR Code
             $paymentPayload = json_encode([
@@ -289,7 +291,7 @@ class PlateOcrController extends Controller
                 "time_out" => $exitTimestamp->format("Y-m-d H:i:s"),
                 "duration_minutes" => $minutes,
                 "amount" => $totalFeeAmount,
-                "currency" => "USD",
+                "currency" => "PHP",
                 "payment_mode" => "DIGITAL_QR_PAYMENT",
             ]);
 
@@ -372,6 +374,7 @@ class PlateOcrController extends Controller
 
             // Persist entry so admins can view it on the dashboard/history
             $entry = PlateEntry::create([
+                "session_id" => ParkingSession::getActive()->id,
                 "plate_number" => $plateNumber,
                 "entry_confidence" => $confidence,
                 "entry_time" => $timestamp,
@@ -467,7 +470,7 @@ class PlateOcrController extends Controller
                 "time_out" => $entry->exit_time ? $entry->exit_time->format("Y-m-d H:i:s") : "N/A",
                 "duration_minutes" => $entry->duration_minutes,
                 "amount" => $entry->parking_fee,
-                "currency" => "USD",
+                "currency" => "PHP",
                 "payment_mode" => "DIGITAL_QR_PAYMENT",
             ]);
             $qrImage = QrCode::format("svg")->size(300)->encoding("UTF-8")->generate($paymentPayload);
@@ -516,7 +519,9 @@ class PlateOcrController extends Controller
      */
     public function dashboard(Request $request)
     {
-        $query = PlateEntry::query();
+        $activeSession = ParkingSession::getActive();
+
+        $query = PlateEntry::query()->where('session_id', $activeSession->id);
 
         if ($request->filled("plate")) {
             $query->where(
@@ -526,57 +531,46 @@ class PlateOcrController extends Controller
             );
         }
 
-        if ($request->filled("date_filter")) {
-            switch ($request->input("date_filter")) {
-                case "today":
-                    $query->whereDate("entry_time", now()->toDateString());
-                    break;
-                case "week":
-                    $query->whereBetween("entry_time", [
-                        now()->startOfWeek(),
-                        now()->endOfWeek(),
-                    ]);
-                    break;
-                case "month":
-                    $query->whereMonth("entry_time", now()->month);
-                    break;
-            }
-        }
-
         $entries = $query->latest("entry_time")->paginate(15);
 
-        $total = PlateEntry::count();
-        $today = PlateEntry::whereDate(
-            "entry_time",
-            now()->toDateString(),
-        )->count();
-        $week = PlateEntry::whereBetween("entry_time", [
-            now()->startOfWeek(),
-            now()->endOfWeek(),
-        ])->count();
-
-        // Calculate actual OCR accuracy from confidence scores
-        $avgConfidence = PlateEntry::whereNotNull('entry_confidence')
-            ->where('entry_confidence', '>', 0)
-            ->avg('entry_confidence');
-        $successRate = $avgConfidence ? round($avgConfidence, 1) : 95;
-
-        // Exited vehicles stats
-        $totalExited = PlateEntry::where("status", "exited")->count();
-        $currentlyInside = PlateEntry::where("status", "entered")->count();
-        $exitedToday = PlateEntry::where("status", "exited")
-            ->whereDate("exit_time", now()->toDateString())
+        // Active session metrics
+        $total = PlateEntry::where('session_id', $activeSession->id)->count();
+        $sessionRevenue = (float)PlateEntry::where('session_id', $activeSession->id)
+            ->where('status', 'exited')
+            ->sum('parking_fee');
+        $currentlyInside = PlateEntry::where('session_id', $activeSession->id)
+            ->where('status', 'entered')
+            ->count();
+        $completedSessions = PlateEntry::where('session_id', $activeSession->id)
+            ->where('status', 'exited')
             ->count();
 
-        // Recent exited vehicles (latest 5)
-        $recentExited = PlateEntry::where("status", "exited")
-            ->latest("exit_time")
+        // Calculate actual OCR accuracy from confidence scores in active session
+        $avgConfidence = PlateEntry::where('session_id', $activeSession->id)
+            ->whereNotNull('entry_confidence')
+            ->where('entry_confidence', '>', 0)
+            ->avg('entry_confidence');
+        $successRate = $avgConfidence ? round($avgConfidence, 1) : 98.5;
+
+        // Recent exited vehicles in active session (latest 5)
+        $recentExited = PlateEntry::where('session_id', $activeSession->id)
+            ->where('status', 'exited')
+            ->latest('exit_time')
             ->take(5)
             ->get();
 
         return view(
             "dashboard",
-            compact("entries", "total", "today", "week", "successRate", "totalExited", "currentlyInside", "exitedToday", "recentExited"),
+            compact(
+                "activeSession",
+                "entries",
+                "total",
+                "sessionRevenue",
+                "currentlyInside",
+                "completedSessions",
+                "successRate",
+                "recentExited"
+            ),
         );
     }
 
@@ -766,6 +760,7 @@ class PlateOcrController extends Controller
                 }
 
                 PlateEntry::create([
+                    "session_id" => ParkingSession::getActive()->id,
                     "plate_number" => $plateNumber,
                     "entry_confidence" => $confidence,
                     "entry_time" => $timestamp,
@@ -798,5 +793,431 @@ class PlateOcrController extends Controller
                 400,
             );
         }
+    }
+
+    /**
+     * Unified auto-detect endpoint for automated camera detection.
+     *
+     * Accepts a base64 frame from any camera, runs YOLO + OCR,
+     * and automatically creates entry records or closes exit sessions.
+     *
+     * @param Request $request  JSON: { frame, camera_id, camera_type }
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function autoDetect(Request $request)
+    {
+        $request->validate([
+            "frame" => "required|string",
+            "camera_id" => "required|string|max:100",
+            "camera_type" => "required|in:entry,exit",
+        ]);
+
+        $cameraId = $request->input("camera_id");
+        $cameraType = $request->input("camera_type");
+        $minConfidence = 40.0; // minimum confidence to accept a detection
+
+        try {
+            // Decode base64 frame
+            $imageData = base64_decode(
+                preg_replace(
+                    "#^data:image/\w+;base64,#i",
+                    "",
+                    $request->input("frame"),
+                ),
+            );
+
+            if (!$imageData || strlen($imageData) < 1000) {
+                return response()->json([
+                    "success" => false,
+                    "no_plate" => true,
+                    "message" => "Frame too small or invalid",
+                ]);
+            }
+
+            // Save frame to temp
+            $tempDir = storage_path("temp");
+            if (!is_dir($tempDir)) {
+                mkdir($tempDir, 0755, true);
+            }
+            $tempPath = $tempDir . "/auto_" . $cameraId . "_" . time() . "_" . uniqid() . ".jpg";
+            file_put_contents($tempPath, $imageData);
+
+            // Run YOLO + OCR pipeline
+            $ocrResult = $this->processPlateImage($tempPath);
+
+            // Check if detection was successful
+            if (!$ocrResult || !isset($ocrResult['success']) || !$ocrResult['success']) {
+                // Cleanup temp
+                if (file_exists($tempPath)) { unlink($tempPath); }
+
+                return response()->json([
+                    "success" => false,
+                    "no_plate" => true,
+                    "message" => "No license plate detected in frame",
+                ]);
+            }
+
+            $plateNumber = $ocrResult['plate_text'];
+            $confidence = $ocrResult['confidence'];
+            $ocrEngine = $ocrResult['ocr_engine'] ?? 'fastplateocr';
+            $croppedPath = $ocrResult['cropped_path'] ?? null;
+
+            // Reject low-confidence detections
+            if ($confidence < $minConfidence || $plateNumber === "UNKNOWN" || strlen($plateNumber) < 3) {
+                if (file_exists($tempPath)) { unlink($tempPath); }
+
+                return response()->json([
+                    "success" => false,
+                    "no_plate" => true,
+                    "message" => "Detection confidence too low ({$confidence}%)",
+                ]);
+            }
+
+            // Derive gate name from camera_id (e.g. "gate1-entry" → "Gate 1")
+            $gateNumber = "Gate 1";
+            if (preg_match('/gate(\d+)/i', $cameraId, $m)) {
+                $gateNumber = "Gate " . $m[1];
+            }
+
+            $timestamp = now();
+
+            // ─── ENTRY CAMERA ───────────────────────────────────────────
+            if ($cameraType === "entry") {
+                // Deduplication: skip if same plate entered within 60 seconds
+                $recent = PlateEntry::where('plate_number', $plateNumber)
+                    ->where('status', 'entered')
+                    ->where('entry_time', '>=', now()->subSeconds(60))
+                    ->first();
+
+                if ($recent) {
+                    if (file_exists($tempPath)) { unlink($tempPath); }
+
+                    return response()->json([
+                        "success" => true,
+                        "duplicate" => true,
+                        "plate" => $plateNumber,
+                        "message" => "Vehicle {$plateNumber} already recorded (dedup)",
+                        "entry_id" => $recent->id,
+                    ]);
+                }
+
+                // Save image permanently
+                $baseName = time() . "_auto_entry_" . uniqid();
+                $filename = $baseName . ".jpg";
+                $publicPath = "plates/" . $filename;
+                $publicFullPath = storage_path("app/public/" . $publicPath);
+
+                // Ensure plates directory exists
+                $platesDir = storage_path("app/public/plates");
+                if (!is_dir($platesDir)) {
+                    mkdir($platesDir, 0755, true);
+                }
+
+                copy($tempPath, $publicFullPath);
+
+                // Copy cropped plate image if available
+                $croppedFilename = $baseName . "_cropped.jpg";
+                $croppedPublicPath = "plates/" . $croppedFilename;
+                if ($croppedPath && file_exists(base_path($croppedPath))) {
+                    copy(base_path($croppedPath), storage_path("app/public/" . $croppedPublicPath));
+                } else {
+                    // Copy full frame as cropped fallback
+                    copy($tempPath, storage_path("app/public/" . $croppedPublicPath));
+                }
+
+                // Create entry record
+                $entry = PlateEntry::create([
+                    "session_id" => ParkingSession::getActive()->id,
+                    "plate_number" => $plateNumber,
+                    "entry_confidence" => $confidence,
+                    "entry_time" => $timestamp,
+                    "entry_image_path" => $publicPath,
+                    "gate_entry" => $gateNumber,
+                    "vehicle_type" => "car",
+                    "status" => "entered",
+                    "remarks" => "Auto-detect [{$cameraId}]: YOLOv8 & " . ucfirst($ocrEngine),
+                ]);
+
+                // Generate QR data for entry pass
+                $qrData = $this->generateQrData($plateNumber, $timestamp);
+                $qrImage = QrCode::format("svg")
+                    ->size(200)
+                    ->encoding("UTF-8")
+                    ->generate($qrData);
+                $qrBase64 = base64_encode($qrImage);
+
+                // Cleanup temp
+                if (file_exists($tempPath)) { unlink($tempPath); }
+
+                return response()->json([
+                    "success" => true,
+                    "type" => "entry",
+                    "plate" => $plateNumber,
+                    "confidence" => $confidence,
+                    "ocr_engine" => $ocrEngine,
+                    "timestamp" => $timestamp->toIso8601String(),
+                    "formatted_time" => $timestamp->format("M d, Y • h:i:s A"),
+                    "gate" => $gateNumber,
+                    "camera_id" => $cameraId,
+                    "entry_id" => $entry->id,
+                    "qr_code" => $qrBase64,
+                    "image_url" => asset("storage/" . $publicPath),
+                    "message" => "Vehicle {$plateNumber} entry recorded at {$gateNumber}",
+                ]);
+            }
+
+            // ─── EXIT CAMERA ────────────────────────────────────────────
+            if ($cameraType === "exit") {
+                // Deduplication: skip if same plate exited within 60 seconds
+                $recentExit = PlateEntry::where('plate_number', $plateNumber)
+                    ->where('status', 'exited')
+                    ->where('exit_time', '>=', now()->subSeconds(60))
+                    ->first();
+
+                if ($recentExit) {
+                    if (file_exists($tempPath)) { unlink($tempPath); }
+
+                    return response()->json([
+                        "success" => true,
+                        "duplicate" => true,
+                        "plate" => $plateNumber,
+                        "message" => "Vehicle {$plateNumber} exit already recorded (dedup)",
+                    ]);
+                }
+
+                // Save image permanently
+                $baseName = time() . "_auto_exit_" . uniqid();
+                $filename = $baseName . ".jpg";
+                $publicPath = "plates/" . $filename;
+                $publicFullPath = storage_path("app/public/" . $publicPath);
+
+                $platesDir = storage_path("app/public/plates");
+                if (!is_dir($platesDir)) {
+                    mkdir($platesDir, 0755, true);
+                }
+
+                copy($tempPath, $publicFullPath);
+
+                $croppedFilename = $baseName . "_cropped.jpg";
+                $croppedPublicPath = "plates/" . $croppedFilename;
+                if ($croppedPath && file_exists(base_path($croppedPath))) {
+                    copy(base_path($croppedPath), storage_path("app/public/" . $croppedPublicPath));
+                } else {
+                    copy($tempPath, storage_path("app/public/" . $croppedPublicPath));
+                }
+
+                // Find matching active entry
+                $entry = PlateEntry::where("plate_number", $plateNumber)
+                    ->where("status", "entered")
+                    ->latest("entry_time")
+                    ->first();
+
+                $isMatchFound = false;
+                $entryTime = null;
+                $durationMinutes = 0;
+                $totalFeeAmount = 5.00;
+                $formattedDuration = "N/A";
+
+                if ($entry) {
+                    $isMatchFound = true;
+                    $entryTime = $entry->entry_time;
+                    $durationMinutes = $entryTime->diffInMinutes($timestamp);
+
+                    // Calculate parking fee
+                    $hours = max(1, (int)ceil($durationMinutes / 60));
+                    if ($hours <= 3) {
+                        $totalFeeAmount = 5.00;
+                    } else {
+                        $totalFeeAmount = 5.00 + (($hours - 3) * 2.00);
+                    }
+
+                    // Format duration
+                    $dh = intdiv($durationMinutes, 60);
+                    $dm = $durationMinutes % 60;
+                    $formattedDuration = $dh > 0 ? "{$dh}h {$dm}m" : "{$dm}m";
+
+                    // Close session
+                    $entry->update([
+                        "status" => "exited",
+                        "exit_time" => $timestamp,
+                        "exit_confidence" => $confidence,
+                        "exit_image_path" => $publicPath,
+                        "gate_exit" => $gateNumber,
+                        "duration_minutes" => $durationMinutes,
+                        "parking_fee" => $totalFeeAmount,
+                        "payment_status" => "unpaid",
+                        "remarks" => trim(($entry->remarks ?? "") . " | Auto-exit [{$cameraId}]: YOLOv8 & " . ucfirst($ocrEngine)),
+                    ]);
+                } else {
+                    // No matching entry — log as exit-only
+                    $entry = PlateEntry::create([
+                        "session_id" => ParkingSession::getActive()->id,
+                        "plate_number" => $plateNumber,
+                        "entry_confidence" => 0.00,
+                        "exit_confidence" => $confidence,
+                        "entry_time" => $timestamp,
+                        "exit_time" => $timestamp,
+                        "exit_image_path" => $publicPath,
+                        "gate_entry" => "Unknown",
+                        "gate_exit" => $gateNumber,
+                        "duration_minutes" => 0,
+                        "parking_fee" => $totalFeeAmount,
+                        "payment_status" => "unpaid",
+                        "status" => "exited",
+                        "remarks" => "Auto-exit only [{$cameraId}]: YOLOv8 & " . ucfirst($ocrEngine),
+                    ]);
+                }
+
+                $formattedFee = "₱" . number_format($totalFeeAmount, 2);
+
+                // Generate payment QR
+                $paymentPayload = json_encode([
+                    "type" => "PARKING_PAYMENT",
+                    "facility" => "Autotrace Parking",
+                    "plate" => $plateNumber,
+                    "time_in" => $entryTime ? $entryTime->format("Y-m-d H:i:s") : "N/A",
+                    "time_out" => $timestamp->format("Y-m-d H:i:s"),
+                    "duration_minutes" => $durationMinutes,
+                    "amount" => $totalFeeAmount,
+                    "currency" => "PHP",
+                    "payment_mode" => "DIGITAL_QR_PAYMENT",
+                ]);
+
+                $paymentQrImage = QrCode::format("svg")
+                    ->size(200)
+                    ->encoding("UTF-8")
+                    ->generate($paymentPayload);
+                $paymentQrCode = base64_encode($paymentQrImage);
+
+                // Cleanup temp
+                if (file_exists($tempPath)) { unlink($tempPath); }
+
+                return response()->json([
+                    "success" => true,
+                    "type" => "exit",
+                    "plate" => $plateNumber,
+                    "confidence" => $confidence,
+                    "ocr_engine" => $ocrEngine,
+                    "timestamp" => $timestamp->toIso8601String(),
+                    "formatted_time" => $timestamp->format("M d, Y • h:i:s A"),
+                    "gate" => $gateNumber,
+                    "camera_id" => $cameraId,
+                    "entry_id" => $entry->id,
+                    "is_match_found" => $isMatchFound,
+                    "entry_time" => $entryTime ? $entryTime->format("M d, Y • h:i:s A") : null,
+                    "duration" => $formattedDuration,
+                    "duration_minutes" => $durationMinutes,
+                    "parking_fee" => $totalFeeAmount,
+                    "formatted_fee" => $formattedFee,
+                    "payment_qr" => $paymentQrCode,
+                    "image_url" => asset("storage/" . $publicPath),
+                    "message" => "Vehicle {$plateNumber} exit recorded — Fee: {$formattedFee}",
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            if (isset($tempPath) && file_exists($tempPath)) {
+                unlink($tempPath);
+            }
+
+            return response()->json([
+                "success" => false,
+                "error" => "Auto-detect error: " . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * End active parking session, archive summary, and start a new blank session.
+     */
+    public function endSession(Request $request)
+    {
+        try {
+            $activeSession = ParkingSession::getActive();
+            $metrics = $activeSession->calculateMetrics();
+
+            // Save and archive completed session summary
+            $activeSession->update([
+                'ended_at' => now(),
+                'status' => 'ended',
+                'total_revenue' => $metrics['total_revenue'],
+                'total_vehicles' => $metrics['total_vehicles'],
+                'currently_parked' => $metrics['currently_parked'],
+                'completed_sessions' => $metrics['completed_sessions'],
+                'total_duration_minutes' => $metrics['total_duration_minutes'],
+                'notes' => $request->input('notes'),
+            ]);
+
+            // Start a completely new blank parking session
+            $count = ParkingSession::count() + 1;
+            $newSession = ParkingSession::create([
+                'session_code' => 'SES-' . date('Ymd') . '-' . str_pad($count, 3, '0', STR_PAD_LEFT),
+                'started_at' => now(),
+                'status' => 'active',
+                'total_revenue' => 0.00,
+                'total_vehicles' => 0,
+                'currently_parked' => 0,
+                'completed_sessions' => 0,
+                'total_duration_minutes' => 0,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Parking session ended and archived successfully.',
+                'summary' => [
+                    'session_id' => $activeSession->id,
+                    'session_code' => $activeSession->session_code,
+                    'total_revenue' => $metrics['total_revenue'],
+                    'formatted_revenue' => $metrics['formatted_revenue'],
+                    'total_vehicles' => $metrics['total_vehicles'],
+                    'currently_parked' => $metrics['currently_parked'],
+                    'completed_sessions' => $metrics['completed_sessions'],
+                    'total_duration_minutes' => $metrics['total_duration_minutes'],
+                    'formatted_duration' => $metrics['formatted_duration'],
+                    'started_at' => $metrics['session_start_time'],
+                    'ended_at' => $metrics['session_end_time'],
+                ],
+                'new_session' => [
+                    'id' => $newSession->id,
+                    'session_code' => $newSession->session_code,
+                    'started_at' => $newSession->started_at->format('M d, Y • h:i:s A'),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to end session: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Retrieve all historical archived parking sessions.
+     */
+    public function sessionHistory(Request $request)
+    {
+        $sessions = ParkingSession::where('status', 'ended')
+            ->orderBy('ended_at', 'DESC')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'sessions' => $sessions->map(function ($s) {
+                $hours = intdiv($s->total_duration_minutes, 60);
+                $mins = $s->total_duration_minutes % 60;
+                $formattedDuration = $hours > 0 ? "{$hours}h {$mins}m" : ($mins > 0 ? "{$mins}m" : "0m");
+                return [
+                    'id' => $s->id,
+                    'session_code' => $s->session_code,
+                    'started_at' => $s->started_at ? $s->started_at->format('M d, Y • h:i A') : 'N/A',
+                    'ended_at' => $s->ended_at ? $s->ended_at->format('M d, Y • h:i A') : 'N/A',
+                    'total_revenue' => '₱' . number_format($s->total_revenue, 2),
+                    'total_vehicles' => $s->total_vehicles,
+                    'currently_parked' => $s->currently_parked,
+                    'completed_sessions' => $s->completed_sessions,
+                    'duration' => $formattedDuration,
+                ];
+            }),
+        ]);
     }
 }

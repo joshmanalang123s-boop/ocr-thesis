@@ -151,8 +151,67 @@ class PlateEntrySeeder extends Seeder
                 'remarks' => 'Large delivery truck — oversized bay assigned',
                 'created_at' => $now->copy()->subDay()->subHours(3),
                 'updated_at' => $now->copy()->subDay()->subHours(1),
-            ],
         ];
+
+        // Ensure realistic plate photos exist for each seeded entry
+        $platesDir = storage_path('app/public/plates');
+        if (!is_dir($platesDir)) {
+            mkdir($platesDir, 0755, true);
+        }
+
+        foreach ($entries as &$entry) {
+            $plate = $entry['plate_number'];
+            $baseName = 'seeded_plate_' . md5($plate);
+            $fullPath = $platesDir . '/' . $baseName . '.jpg';
+            $cropPath = $platesDir . '/' . $baseName . '_cropped.jpg';
+
+            if (!file_exists($cropPath)) {
+                $w = 320;
+                $h = 100;
+                $im = imagecreatetruecolor($w, $h);
+                $bumperBg = imagecolorallocate($im, 24, 30, 42);
+                imagefilledrectangle($im, 0, 0, $w, $h, $bumperBg);
+
+                $px1 = 20; $py1 = 12; $px2 = $w - 20; $py2 = $h - 12;
+                $plateFrame = imagecolorallocate($im, 17, 24, 39);
+                imagefilledrectangle($im, $px1, $py1, $px2, $py2, $plateFrame);
+
+                $plateBg = imagecolorallocate($im, 248, 250, 252);
+                imagefilledrectangle($im, $px1 + 3, $py1 + 3, $px2 - 3, $py2 - 3, $plateBg);
+
+                $innerBorder = imagecolorallocate($im, 30, 41, 59);
+                imagerectangle($im, $px1 + 6, $py1 + 6, $px2 - 6, $py2 - 6, $innerBorder);
+
+                $headerColor = imagecolorallocate($im, 71, 85, 105);
+                imagestring($im, 2, ($w - 54) / 2, $py1 + 9, "AUTOTRACE", $headerColor);
+
+                $textColor = imagecolorallocate($im, 15, 23, 42);
+                $font = 5;
+                $charWidth = imagefontwidth($font);
+                $textLen = strlen($plate);
+                $textX = (int)(($w - ($textLen * $charWidth * 1.6)) / 2);
+                $textY = (int)($py1 + 32);
+
+                for ($i = 0; $i < $textLen; $i++) {
+                    $cx = $textX + ($i * (int)($charWidth * 1.65));
+                    imagestring($im, $font, $cx, $textY, $plate[$i], $textColor);
+                    imagestring($im, $font, $cx + 1, $textY, $plate[$i], $textColor);
+                }
+
+                imagejpeg($im, $fullPath, 92);
+
+                $cropW = $px2 - $px1; $cropH = $py2 - $py1;
+                $cropIm = imagecreatetruecolor($cropW, $cropH);
+                imagecopy($cropIm, $im, 0, 0, $px1, $py1, $cropW, $cropH);
+                imagejpeg($cropIm, $cropPath, 95);
+
+                imagedestroy($cropIm);
+                imagedestroy($im);
+            }
+
+            $entry['entry_image_path'] = 'plates/' . $baseName . '.jpg';
+        }
+        unset($entry);
 
         DB::table('plate_entries')->insert($entries);
     }

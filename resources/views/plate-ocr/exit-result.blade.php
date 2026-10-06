@@ -356,7 +356,7 @@
                 </div>
 
                 <div class="detail-item" style="background: #ECFDF5; border: 1px solid #A7F3D0;">
-                    <span style="color: #047857; font-weight: 700;"><i class="ri-money-dollar-circle-line"></i> Total Cost</span>
+                    <span style="color: #047857; font-weight: 700;"><i class="ri-wallet-3-line"></i> Total Cost</span>
                     <strong style="color: #059669; font-size: 1.1rem;">{{ $formattedFee }}</strong>
                 </div>
             </div>

@@ -10,6 +10,7 @@ class PlateEntry extends Model
     use HasFactory;
 
     protected $fillable = [
+        'session_id',
         'plate_number',
         'entry_time',
         'exit_time',
@@ -26,6 +27,14 @@ class PlateEntry extends Model
         'status',
         'remarks',
     ];
+
+    /**
+     * Relationship: The parking session this entry belongs to.
+     */
+    public function session()
+    {
+        return $this->belongsTo(ParkingSession::class, 'session_id');
+    }
 
     protected $casts = [
         'entry_time' => 'datetime',

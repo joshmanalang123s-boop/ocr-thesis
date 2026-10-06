@@ -474,6 +474,159 @@
             text-transform: uppercase;
         }
 
+        /* Plate Photo Thumbnail in Tables */
+        .plate-thumbnail-container {
+            background: #0B1120;
+            border-radius: 6px;
+            padding: 2px;
+            border: 1px solid #334155;
+            width: 90px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            flex-shrink: 0;
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+            cursor: pointer;
+        }
+
+        .plate-thumbnail-container:hover {
+            transform: scale(1.08);
+            border-color: #3B82F6;
+            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+            z-index: 5;
+        }
+
+        .plate-thumbnail-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 4px;
+            display: block;
+        }
+
+        .plate-graphic-fallback {
+            background: #F8FAFC;
+            color: #0F172A;
+            width: 100%;
+            height: 100%;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 1.5px solid #1E293B;
+            font-family: 'Courier New', monospace;
+            font-weight: 900;
+            line-height: 1.1;
+            padding: 2px;
+        }
+
+        .plate-graphic-fallback .plate-sub-text {
+            font-size: 0.45rem;
+            color: #64748B;
+            letter-spacing: 0.5px;
+            line-height: 1;
+        }
+
+        .plate-graphic-fallback .plate-main-text {
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+            color: #0F172A;
+        }
+
+        /* Lightbox Modal for Plate Picture Preview */
+        .plate-lightbox-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .plate-lightbox-modal.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .plate-lightbox-content {
+            background: #1E293B;
+            border: 1px solid #334155;
+            border-radius: 14px;
+            max-width: 500px;
+            width: 100%;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transform: scale(0.95);
+            transition: transform 0.2s ease;
+        }
+
+        .plate-lightbox-modal.active .plate-lightbox-content {
+            transform: scale(1);
+        }
+
+        .plate-lightbox-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.85rem 1.25rem;
+            border-bottom: 1px solid #334155;
+            background: #0F172A;
+        }
+
+        .plate-lightbox-header h4 {
+            margin: 0;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #FFFFFF;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .plate-lightbox-close {
+            background: transparent;
+            border: none;
+            color: #94A3B8;
+            font-size: 1.25rem;
+            cursor: pointer;
+            border-radius: 6px;
+            padding: 2px 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+
+        .plate-lightbox-close:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #FFFFFF;
+        }
+
+        .plate-lightbox-body {
+            padding: 1.25rem;
+            background: #0B1120;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .plate-lightbox-img {
+            max-width: 100%;
+            max-height: 380px;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
         /* Mobile Menu Toggle */
         .mobile-menu-toggle {
             display: none;
@@ -597,15 +750,32 @@
                 <h3 class="nav-section-title">System</h3>
                 <ul class="nav-items">
                     <li class="nav-item">
+                        <a href="{{ route('analytics') }}" class="nav-link {{ request()->routeIs('analytics*') ? 'active' : '' }}">
+                            <span class="nav-icon"><i class="ri-bar-chart-grouped-line" style="color: #8B5CF6;"></i></span>
+                            <span>Analytics & Reports</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a href="{{ route('settings') }}" class="nav-link {{ request()->routeIs('settings') ? 'active' : '' }}">
                             <span class="nav-icon"><i class="ri-settings-4-line"></i></span>
                             <span>Gate Settings</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();" class="nav-link" style="color: #F87171;">
+                            <span class="nav-icon"><i class="ri-logout-box-r-line" style="color: #F87171;"></i></span>
+                            <span>Log Out</span>
                         </a>
                     </li>
                 </ul>
             </div>
         </nav>
     </aside>
+
+    <!-- Hidden Logout Form -->
+    <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+        @csrf
+    </form>
 
     <!-- Main Content Wrapper -->
     <div class="main-wrapper">
@@ -622,12 +792,18 @@
                     <i class="ri-time-line" style="color: #2563EB;"></i>
                     <span id="liveClockDisplay">--:--:--</span>
                 </div>
-                <div class="header-user">
-                    <div class="user-avatar">OP</div>
-                    <div class="user-info">
-                        <div class="user-name">Gate Operator</div>
-                        <div class="user-role">System Admin</div>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div class="header-user">
+                        <div class="user-avatar">{{ strtoupper(substr(Auth::user()->name ?? 'admin', 0, 2)) }}</div>
+                        <div class="user-info">
+                            <div class="user-name">{{ Auth::user()->name ?? 'admin' }}</div>
+                            <div class="user-role">System Admin</div>
+                        </div>
                     </div>
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('logout-form').submit();" title="Log Out" style="padding: 0.5rem 0.75rem; color: #EF4444; border-color: #FCA5A5;">
+                        <i class="ri-logout-box-r-line"></i>
+                        <span>Logout</span>
+                    </button>
                 </div>
             </div>
         </header>
@@ -689,7 +865,42 @@
                 }
             });
         });
+
+        // Global Plate Preview Lightbox Handlers
+        function openPlatePreview(imgUrl, plateNumber) {
+            if (!imgUrl) return;
+            const modal = document.getElementById('plateLightboxModal');
+            const img = document.getElementById('plateLightboxImage');
+            const title = document.getElementById('plateLightboxTitle');
+            if (modal && img) {
+                img.src = imgUrl;
+                if (title) title.textContent = 'Plate Photo: ' + (plateNumber || '');
+                modal.classList.add('active');
+            }
+        }
+
+        function closePlatePreview(e) {
+            const modal = document.getElementById('plateLightboxModal');
+            if (modal) modal.classList.remove('active');
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closePlatePreview();
+        });
     </script>
+
+    <!-- Global Plate Picture Lightbox Modal -->
+    <div id="plateLightboxModal" class="plate-lightbox-modal" onclick="closePlatePreview(event)">
+        <div class="plate-lightbox-content" onclick="event.stopPropagation()">
+            <div class="plate-lightbox-header">
+                <h4><i class="ri-car-line" style="color: #3B82F6;"></i> <span id="plateLightboxTitle">Plate Photo</span></h4>
+                <button type="button" class="plate-lightbox-close" onclick="closePlatePreview()"><i class="ri-close-line"></i></button>
+            </div>
+            <div class="plate-lightbox-body">
+                <img id="plateLightboxImage" src="" alt="License Plate Photo" class="plate-lightbox-img">
+            </div>
+        </div>
+    </div>
 
     @yield('additional-scripts')
 </body>

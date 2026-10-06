@@ -61,7 +61,7 @@
             </div>
 
             <div style="text-align: center; font-size: 14px; font-weight: 900; border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 6px 0; margin-bottom: 8px;">
-                TOTAL COST: ${{ number_format($entry->parking_fee, 2) }}
+                TOTAL COST: ₱{{ number_format($entry->parking_fee, 2) }}
             </div>
 
             <div style="text-align: center; font-size: 10px;">

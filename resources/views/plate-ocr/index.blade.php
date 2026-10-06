@@ -17,11 +17,13 @@
         display: flex;
         align-items: center;
         gap: 0.625rem;
+        flex-wrap: wrap;
     }
 
     .page-header p {
         color: var(--text-secondary);
         font-size: 0.875rem;
+        margin-top: 0.25rem;
     }
 
     .gate-badge-entry {
@@ -39,25 +41,41 @@
         text-transform: uppercase;
     }
 
-    /* Simple Camera Card */
+    .auto-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.3rem 0.75rem;
+        background: #EEF2FF;
+        color: #4338CA;
+        border: 1px solid #C7D2FE;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
+    /* Camera Card - Clean CCTV View */
     .camera-card {
         background: var(--bg-secondary);
         border: 1px solid var(--border-color);
         border-radius: 14px;
         box-shadow: var(--card-shadow);
         padding: 1.5rem;
-        margin-bottom: 2rem;
+        margin-bottom: 1.5rem;
     }
 
     .camera-container {
         position: relative;
         width: 100%;
-        background: #0F172A;
+        background: #0B1120;
         aspect-ratio: 16 / 9;
         max-height: 450px;
         border-radius: 10px;
         overflow: hidden;
         margin-bottom: 1.25rem;
+        border: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     #cameraVideo {
@@ -65,6 +83,47 @@
         height: 100%;
         object-fit: cover;
         transform: scaleX(-1);
+    }
+
+    /* Clean CCTV Status Badge */
+    .camera-status-pill {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 12px;
+        background: rgba(15, 23, 42, 0.75);
+        backdrop-filter: blur(6px);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 6px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #E2E8F0;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        z-index: 10;
+        font-family: monospace;
+    }
+
+    .camera-status-pill .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #10B981;
+    }
+
+    .camera-status-pill .dot.active {
+        background: #10B981;
+    }
+
+    .camera-status-pill .dot.scanning {
+        background: #10B981;
+    }
+
+    .camera-status-pill .dot.paused {
+        background: #94A3B8;
     }
 
     .camera-controls {
@@ -87,13 +146,18 @@
         transition: all 0.2s ease;
     }
 
-    .control-btn.btn-entry-capture {
+    .control-btn.btn-auto-toggle {
         background: #10B981;
         color: white;
     }
 
-    .control-btn.btn-entry-capture:hover {
+    .control-btn.btn-auto-toggle:hover {
         background: #059669;
+    }
+
+    .control-btn.btn-auto-toggle.paused {
+        background: #F59E0B;
+        color: white;
     }
 
     .control-btn.btn-camera-stop {
@@ -106,27 +170,53 @@
         background: #E2E8F0;
     }
 
-    /* Status Message Banner */
-    .status-message {
+    /* Detection Status Banner */
+    .detection-status {
         padding: 1rem 1.25rem;
         border-radius: 10px;
-        display: none;
+        display: flex;
         align-items: center;
         gap: 0.75rem;
         margin-bottom: 1.5rem;
         font-weight: 600;
         font-size: 0.875rem;
+        transition: all 0.3s ease;
     }
 
-    .status-message.active { display: flex; }
-    .status-message.processing { background: #EEF2FF; color: #4338CA; border: 1px solid #C7D2FE; }
-    .status-message.success { background: #ECFDF5; color: #047857; border: 1px solid #A7F3D0; }
-    .status-message.error { background: #FEF2F2; color: #B91C1C; border: 1px solid #FECACA; }
+    .detection-status.idle {
+        background: #F1F5F9;
+        color: #475569;
+        border: 1px solid #E2E8F0;
+    }
+
+    .detection-status.scanning {
+        background: #EEF2FF;
+        color: #4338CA;
+        border: 1px solid #C7D2FE;
+    }
+
+    .detection-status.found {
+        background: #ECFDF5;
+        color: #047857;
+        border: 1px solid #A7F3D0;
+        animation: resultFlash 0.5s ease;
+    }
+
+    .detection-status.error {
+        background: #FEF2F2;
+        color: #B91C1C;
+        border: 1px solid #FECACA;
+    }
+
+    @keyframes resultFlash {
+        0% { transform: scale(1.02); }
+        50% { transform: scale(1); }
+    }
 
     .loading-spinner {
         display: inline-block;
-        width: 18px;
-        height: 18px;
+        width: 16px;
+        height: 16px;
         border: 2px solid rgba(0, 0, 0, 0.1);
         border-radius: 50%;
         border-top-color: currentColor;
@@ -135,68 +225,188 @@
 
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* File Upload Option */
-    .upload-section {
+    /* Detection Log */
+    .detection-log {
         background: var(--bg-secondary);
         border: 1px solid var(--border-color);
         border-radius: 14px;
-        padding: 1.5rem;
-        margin-bottom: 2rem;
         box-shadow: var(--card-shadow);
+        overflow: hidden;
     }
 
-    .upload-section h3 {
+    .detection-log-header {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #FAFAFA;
+    }
+
+    .detection-log-header h3 {
         font-size: 1rem;
-        font-weight: 700;
+        font-weight: 800;
         color: var(--text-primary);
-        margin-bottom: 1rem;
         display: flex;
         align-items: center;
         gap: 0.5rem;
     }
 
-    .upload-area {
-        border: 2px dashed var(--border-color);
+    .detection-log-header .count-badge {
+        background: #10B981;
+        color: white;
+        padding: 2px 8px;
         border-radius: 12px;
-        padding: 2rem;
+        font-size: 0.7rem;
+        font-weight: 700;
+    }
+
+    .detection-log-body {
+        max-height: 380px;
+        overflow-y: auto;
+    }
+
+    .log-empty {
+        padding: 3rem 2rem;
         text-align: center;
-        background: #F8FAFC;
-        cursor: pointer;
-        transition: all 0.2s ease;
+        color: var(--text-tertiary);
     }
 
-    .upload-area:hover, .upload-area.dragover {
-        background: #ECFDF5;
-        border-color: #10B981;
+    .log-empty i {
+        font-size: 2.5rem;
+        margin-bottom: 0.75rem;
+        display: block;
+        opacity: 0.4;
     }
 
-    .upload-icon {
-        width: 52px;
-        height: 52px;
-        margin: 0 auto 1rem;
-        background: #ECFDF5;
-        border-radius: 50%;
+    .log-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #F1F5F9;
+        animation: slideIn 0.3s ease;
+    }
+
+    .log-item:last-child {
+        border-bottom: none;
+    }
+
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateY(-8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .log-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+
+    .log-icon.entry {
+        background: #ECFDF5;
         color: #10B981;
-        font-size: 1.5rem;
     }
 
-    #plateUpload { display: none; }
+    .log-icon.duplicate {
+        background: #FEF9C3;
+        color: #CA8A04;
+    }
 
-    .file-selected {
-        margin-top: 1rem;
-        padding: 1rem;
-        background: #F8FAFC;
-        border-radius: 8px;
-        display: none;
-        align-items: center;
-        gap: 0.75rem;
+    .log-details {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .log-plate {
+        font-weight: 800;
+        font-family: 'Courier New', monospace;
+        letter-spacing: 2px;
+        font-size: 1rem;
+        color: var(--text-primary);
+    }
+
+    .log-meta {
+        font-size: 0.75rem;
+        color: var(--text-tertiary);
+        margin-top: 2px;
+    }
+
+    .log-confidence {
+        font-size: 0.8rem;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 6px;
+        flex-shrink: 0;
+    }
+
+    .log-confidence.high {
+        background: #ECFDF5;
+        color: #059669;
+    }
+
+    .log-confidence.medium {
+        background: #FFF7ED;
+        color: #C2410C;
+    }
+
+    /* Stats Row */
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    @media (max-width: 768px) {
+        .stats-row { grid-template-columns: 1fr; }
+    }
+
+    .stat-card {
+        background: var(--bg-secondary);
         border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        box-shadow: var(--card-shadow);
     }
 
-    .file-selected.active { display: flex; }
+    .stat-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+
+    .stat-icon.scan { background: #EEF2FF; color: #4F46E5; }
+    .stat-icon.detected { background: #ECFDF5; color: #10B981; }
+    .stat-icon.skipped { background: #FEF9C3; color: #CA8A04; }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        line-height: 1;
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        color: var(--text-tertiary);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
 </style>
 @endsection
 
@@ -207,26 +417,58 @@
         <i class="ri-login-box-line" style="color: #10B981;"></i>
         Gate 1 • Entry Camera Terminal
         <span class="gate-badge-entry"><i class="ri-checkbox-circle-fill"></i> GATE IN ONLINE</span>
+        <span class="auto-badge" id="autoBadge"><i class="ri-robot-2-line"></i> AUTO-DETECT ACTIVE</span>
     </h1>
-    <p>Position incoming vehicle in front of Gate 1 camera to scan license plate and issue entry QR pass</p>
+    <p>Automated license plate detection — vehicles are scanned and registered automatically</p>
 </div>
 
-<!-- Status Banner -->
-<div class="status-message" id="statusMessage">
-    <i class="ri-loader-4-line loading-spinner"></i>
-    <span id="statusText">Ready...</span>
+<!-- Detection Status -->
+<div class="detection-status idle" id="detectionStatus">
+    <i class="ri-radar-line"></i>
+    <span id="detectionStatusText">Initializing camera and auto-detection...</span>
+</div>
+
+<!-- Session Stats -->
+<div class="stats-row">
+    <div class="stat-card">
+        <div class="stat-icon scan"><i class="ri-scan-2-line"></i></div>
+        <div>
+            <div class="stat-value" id="statScans">0</div>
+            <div class="stat-label">Frames Scanned</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon detected"><i class="ri-car-line"></i></div>
+        <div>
+            <div class="stat-value" id="statDetected">0</div>
+            <div class="stat-label">Vehicles Detected</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon skipped"><i class="ri-skip-forward-line"></i></div>
+        <div>
+            <div class="stat-value" id="statSkipped">0</div>
+            <div class="stat-label">Duplicates Skipped</div>
+        </div>
+    </div>
 </div>
 
 <!-- Camera Card -->
 <div class="camera-card">
     <div class="camera-container" id="cameraContainer">
         <video id="cameraVideo" playsinline autoplay></video>
+
+        <!-- Camera Status Pill -->
+        <div class="camera-status-pill" id="cameraStatusPill">
+            <span class="dot" id="cameraDot"></span>
+            <span id="cameraStatusText">CONNECTING</span>
+        </div>
     </div>
 
     <div class="camera-controls">
-        <button type="button" class="control-btn btn-entry-capture" id="captureBtn">
-            <i class="ri-camera-3-line"></i>
-            <span>Capture Entry Plate</span>
+        <button type="button" class="control-btn btn-auto-toggle" id="autoToggleBtn">
+            <i class="ri-pause-circle-line"></i>
+            <span>Pause Auto-Scan</span>
         </button>
         <button type="button" class="control-btn btn-camera-stop" id="toggleCameraBtn">
             <i class="ri-camera-off-line"></i>
@@ -235,128 +477,93 @@
     </div>
 </div>
 
-<!-- Upload Section -->
-<div class="upload-section">
-    <h3><i class="ri-upload-cloud-line" style="color: #10B981;"></i> Manual Photo Entry Upload</h3>
-    <form id="uploadForm" action="{{ route('plate-ocr.detect') }}" method="POST" enctype="multipart/form-data">
-        @csrf
-        <div class="upload-area" id="uploadArea">
-            <div class="upload-icon">
-                <i class="ri-image-add-line"></i>
-            </div>
-            <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">Click or Drag Vehicle Photo Here</h4>
-            <p style="font-size: 0.8125rem; color: var(--text-secondary); margin-top: 0.25rem;">Supports JPG, PNG, WEBP photo captures up to 10MB</p>
-            <input type="file" id="plateUpload" name="image" accept="image/*">
+<!-- Detection Event Log -->
+<div class="detection-log">
+    <div class="detection-log-header">
+        <h3>
+            <i class="ri-list-check-3" style="color: #10B981;"></i>
+            Auto-Detection Log
+            <span class="count-badge" id="logCount">0</span>
+        </h3>
+    </div>
+    <div class="detection-log-body" id="detectionLogBody">
+        <div class="log-empty" id="logEmpty">
+            <i class="ri-radar-line"></i>
+            <div style="font-weight: 700; font-size: 0.9rem;">Waiting for vehicles...</div>
+            <div style="font-size: 0.8rem; margin-top: 0.25rem;">Auto-detection will begin once camera is active</div>
         </div>
-
-        <div class="file-selected" id="fileSelected">
-            <i class="ri-checkbox-circle-fill" style="color: #10B981; font-size: 1.25rem;"></i>
-            <div style="flex: 1;">
-                <div id="fileName" style="font-weight: 700; font-size: 0.875rem; color: var(--text-primary);">filename.jpg</div>
-                <div id="fileSize" style="font-size: 0.75rem; color: var(--text-tertiary);">2.5 MB</div>
-            </div>
-            <button type="submit" class="btn btn-entry">
-                <i class="ri-scan-line"></i>
-                <span>Process Entry</span>
-            </button>
-        </div>
-    </form>
+    </div>
 </div>
 @endsection
 
 @section('additional-scripts')
 <script>
-class PlateScanner {
-    constructor() {
+class AutoEntryScanner {
+    constructor(config) {
+        this.cameraId = config.cameraId || 'gate1-entry';
+        this.cameraType = 'entry';
+        this.apiUrl = config.apiUrl;
+        this.csrfToken = config.csrfToken;
+
+        // State
         this.video = document.getElementById('cameraVideo');
         this.canvas = document.createElement('canvas');
         this.stream = null;
         this.isCameraActive = false;
-        this.isCapturing = false;
-        this.torchEnabled = false;
+        this.isAutoScanEnabled = true;
+        this.isPendingRequest = false;
+
+        // Timing
+        this.scanIntervalMs = 2000; // scan every 2 seconds
+        this.cooldownMs = 5000;     // 5s cooldown after successful detection
+        this.scanTimer = null;
+        this.cooldownUntil = 0;
+
+        // Stats
+        this.stats = { scans: 0, detected: 0, skipped: 0 };
+        this.logEntries = [];
 
         this.init();
     }
 
     init() {
-        // Camera controls
-        const captureBtn = document.getElementById('captureBtn');
-        const toggleCamBtn = document.getElementById('toggleCameraBtn');
-        const torchBtn = document.getElementById('torchToggle');
+        document.getElementById('autoToggleBtn').addEventListener('click', () => this.toggleAutoScan());
+        document.getElementById('toggleCameraBtn').addEventListener('click', () => this.toggleCamera());
 
-        if (captureBtn) captureBtn.addEventListener('click', () => this.capture());
-        if (toggleCamBtn) toggleCamBtn.addEventListener('click', () => this.toggleCamera());
-        if (torchBtn) torchBtn.addEventListener('click', () => this.toggleTorch());
-
-        // Upload controls
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('plateUpload');
-
-        uploadArea.addEventListener('click', () => fileInput.click());
-        fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
-
-        // Drag and drop
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
-        });
-
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('dragover');
-        });
-
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                fileInput.files = files;
-                this.handleFileSelect({ target: fileInput });
-            }
-        });
-
-        // Start camera automatically
         this.startCamera();
     }
 
     async startCamera() {
         try {
             const constraints = {
-                video: {
-                    facingMode: 'environment',
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 }
-                },
+                video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
                 audio: false
             };
 
             this.stream = await navigator.mediaDevices.getUserMedia(constraints);
             this.video.srcObject = this.stream;
             this.isCameraActive = true;
+            this.updateCameraUI();
+            this.updateDetectionStatus('idle', 'Camera active — auto-scanning for vehicles...');
 
-            // Check for torch/flashlight support
-            const track = this.stream.getVideoTracks()[0];
-            const capabilities = track.getCapabilities();
-
-            if (capabilities.torch) {
-                const torchBtn = document.getElementById('torchToggle');
-                if (torchBtn) torchBtn.style.display = 'flex';
+            // Start auto-scan loop
+            if (this.isAutoScanEnabled) {
+                this.startAutoScan();
             }
-
-            this.updateCameraButton();
-
         } catch (error) {
             console.error('Camera error:', error);
-            this.showStatus('Camera not available. Please use file upload.', 'error');
+            this.updateDetectionStatus('error', 'Camera not available — ' + error.message);
         }
     }
 
     stopCamera() {
+        this.stopAutoScan();
         if (this.stream) {
             this.stream.getTracks().forEach(track => track.stop());
             this.video.srcObject = null;
             this.isCameraActive = false;
-            this.updateCameraButton();
+            this.updateCameraUI();
+            this.updateDetectionStatus('idle', 'Camera stopped');
         }
     }
 
@@ -368,118 +575,217 @@ class PlateScanner {
         }
     }
 
-    updateCameraButton() {
+    toggleAutoScan() {
+        if (this.isAutoScanEnabled) {
+            this.isAutoScanEnabled = false;
+            this.stopAutoScan();
+            this.updateAutoToggleUI();
+            this.updateDetectionStatus('idle', 'Auto-scan paused by operator');
+        } else {
+            this.isAutoScanEnabled = true;
+            this.updateAutoToggleUI();
+            if (this.isCameraActive) {
+                this.startAutoScan();
+            }
+        }
+    }
+
+    startAutoScan() {
+        this.stopAutoScan();
+        this.updateDetectionStatus('scanning', 'Monitoring camera feed for vehicles...');
+
+        this.scanTimer = setInterval(() => this.autoScanFrame(), this.scanIntervalMs);
+    }
+
+    stopAutoScan() {
+        if (this.scanTimer) {
+            clearInterval(this.scanTimer);
+            this.scanTimer = null;
+        }
+    }
+
+    async autoScanFrame() {
+        if (!this.isCameraActive || !this.isAutoScanEnabled || this.isPendingRequest) return;
+
+        // Check cooldown
+        if (Date.now() < this.cooldownUntil) return;
+
+        // Ensure video has valid dimensions
+        if (!this.video.videoWidth || !this.video.videoHeight) return;
+
+        this.isPendingRequest = true;
+        this.stats.scans++;
+        this.updateStats();
+
+        try {
+            // Capture frame silently from live video
+            this.canvas.width = this.video.videoWidth;
+            this.canvas.height = this.video.videoHeight;
+            const ctx = this.canvas.getContext('2d');
+            ctx.save();
+            ctx.scale(-1, 1);
+            ctx.drawImage(this.video, -this.canvas.width, 0);
+            ctx.restore();
+
+            const frameData = this.canvas.toDataURL('image/jpeg', 0.85);
+
+            // Send to API
+            const response = await fetch(this.apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': this.csrfToken,
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({
+                    frame: frameData,
+                    camera_id: this.cameraId,
+                    camera_type: this.cameraType,
+                }),
+            });
+
+            const result = await response.json();
+
+            if (result.success && !result.no_plate) {
+                if (result.duplicate) {
+                    // Duplicate detection — already recorded
+                    this.stats.skipped++;
+                    this.updateStats();
+                    this.setCameraDot('active');
+                } else {
+                    // New vehicle detected!
+                    this.stats.detected++;
+                    this.updateStats();
+                    this.addLogEntry(result);
+                    this.updateDetectionStatus('found',
+                        '✓ Vehicle detected: ' + result.plate + ' — Entry recorded at ' + result.gate);
+
+                    // Cooldown after successful detection
+                    this.cooldownUntil = Date.now() + this.cooldownMs;
+                    this.setCameraDot('active');
+                }
+            } else {
+                // No plate found — keep scanning silently
+                this.setCameraDot('active');
+                if (this.isAutoScanEnabled) {
+                    this.updateDetectionStatus('scanning', 'Scanning for vehicles...');
+                }
+            }
+        } catch (error) {
+            console.error('Auto-detect error:', error);
+            this.updateDetectionStatus('error', 'Detection error: ' + error.message);
+            this.setCameraDot('active');
+        } finally {
+            this.isPendingRequest = false;
+        }
+    }
+
+    // ─── UI Helpers ─────────────────────────────────────────────
+
+    addLogEntry(result) {
+        const logBody = document.getElementById('detectionLogBody');
+        const logEmpty = document.getElementById('logEmpty');
+        if (logEmpty) logEmpty.style.display = 'none';
+
+        const confClass = result.confidence >= 70 ? 'high' : 'medium';
+        const iconClass = result.duplicate ? 'duplicate' : 'entry';
+        const iconName = result.duplicate ? 'ri-skip-forward-fill' : 'ri-checkbox-circle-fill';
+
+        const item = document.createElement('div');
+        item.className = 'log-item';
+        item.innerHTML = `
+            <div class="log-icon ${iconClass}"><i class="${iconName}"></i></div>
+            <div class="log-details">
+                <div class="log-plate">${result.plate}</div>
+                <div class="log-meta">${result.formatted_time} • ${result.gate} • ${result.ocr_engine?.toUpperCase()}</div>
+            </div>
+            <span class="log-confidence ${confClass}">${result.confidence}%</span>
+        `;
+
+        logBody.insertBefore(item, logBody.firstChild);
+
+        this.logEntries.unshift(result);
+        document.getElementById('logCount').textContent = this.logEntries.length;
+
+        // Keep only last 50
+        while (logBody.children.length > 50) {
+            logBody.removeChild(logBody.lastChild);
+        }
+    }
+
+    updateStats() {
+        document.getElementById('statScans').textContent = this.stats.scans;
+        document.getElementById('statDetected').textContent = this.stats.detected;
+        document.getElementById('statSkipped').textContent = this.stats.skipped;
+    }
+
+    updateDetectionStatus(type, message) {
+        const el = document.getElementById('detectionStatus');
+        const textEl = document.getElementById('detectionStatusText');
+
+        el.className = 'detection-status ' + type;
+        textEl.textContent = message;
+
+        const icons = {
+            idle: '<i class="ri-radar-line"></i>',
+            scanning: '<span class="loading-spinner"></span>',
+            found: '<i class="ri-checkbox-circle-fill"></i>',
+            error: '<i class="ri-error-warning-fill"></i>',
+        };
+
+        el.innerHTML = (icons[type] || '') + '<span>' + message + '</span>';
+    }
+
+    updateCameraUI() {
         const btn = document.getElementById('toggleCameraBtn');
         if (this.isCameraActive) {
             btn.innerHTML = '<i class="ri-camera-off-line"></i><span>Stop Camera</span>';
+            this.setCameraDot('active');
+            document.getElementById('cameraStatusText').textContent = 'LIVE';
         } else {
             btn.innerHTML = '<i class="ri-camera-line"></i><span>Start Camera</span>';
+            this.setCameraDot('paused');
+            document.getElementById('cameraStatusText').textContent = 'OFFLINE';
         }
     }
 
-    async toggleTorch() {
-        if (!this.stream) return;
+    updateAutoToggleUI() {
+        const btn = document.getElementById('autoToggleBtn');
+        const badge = document.getElementById('autoBadge');
 
-        try {
-            const track = this.stream.getVideoTracks()[0];
-            this.torchEnabled = !this.torchEnabled;
-
-            await track.applyConstraints({
-                advanced: [{ torch: this.torchEnabled }]
-            });
-
-            const btn = document.getElementById('torchToggle');
-            if (this.torchEnabled) {
-                btn.innerHTML = '<i class="ri-flashlight-fill"></i><span>Flashlight On</span>';
-            } else {
-                btn.innerHTML = '<i class="ri-flashlight-line"></i><span>Flashlight</span>';
-            }
-
-        } catch (error) {
-            console.error('Torch error:', error);
+        if (this.isAutoScanEnabled) {
+            btn.innerHTML = '<i class="ri-pause-circle-line"></i><span>Pause Auto-Scan</span>';
+            btn.classList.remove('paused');
+            badge.innerHTML = '<i class="ri-robot-2-line"></i> AUTO-DETECT ACTIVE';
+            badge.style.background = '#EEF2FF';
+            badge.style.color = '#4338CA';
+            badge.style.borderColor = '#C7D2FE';
+        } else {
+            btn.innerHTML = '<i class="ri-play-circle-line"></i><span>Resume Auto-Scan</span>';
+            btn.classList.add('paused');
+            badge.innerHTML = '<i class="ri-pause-mini-line"></i> AUTO-DETECT PAUSED';
+            badge.style.background = '#FEF9C3';
+            badge.style.color = '#A16207';
+            badge.style.borderColor = '#FDE68A';
         }
     }
 
-    async capture() {
-        if (!this.isCameraActive || this.isCapturing) return;
-
-        this.isCapturing = true;
-        this.showStatus('Processing plate detection...', 'processing');
-
-        // Set canvas dimensions
-        this.canvas.width = this.video.videoWidth;
-        this.canvas.height = this.video.videoHeight;
-
-        // Draw video frame
-        const ctx = this.canvas.getContext('2d');
-        ctx.scale(-1, 1);
-        ctx.drawImage(this.video, -this.canvas.width, 0);
-
-        // Convert to blob and submit as a real form post so the browser
-        // navigates to the rendered result page (POST /plate-ocr/detect
-        // returns a view, not a redirect — fetch()'s response.url doesn't
-        // point at the result page).
-        this.canvas.toBlob((blob) => {
-            const file = new File([blob], 'plate-capture.jpg', { type: 'image/jpeg' });
-            const dataTransfer = new DataTransfer();
-            dataTransfer.items.add(file);
-
-            const fileInput = document.getElementById('plateUpload');
-            fileInput.files = dataTransfer.files;
-
-            document.getElementById('uploadForm').submit();
-        }, 'image/jpeg', 0.95);
+    setCameraDot(state) {
+        const dot = document.getElementById('cameraDot');
+        dot.className = 'dot ' + state;
     }
 
-    handleFileSelect(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        // Validate file type
-        if (!file.type.startsWith('image/')) {
-            this.showStatus('Please select a valid image file', 'error');
-            e.target.value = '';
-            return;
-        }
-
-        // Validate file size (10MB)
-        if (file.size > 10 * 1024 * 1024) {
-            this.showStatus('File size exceeds 10MB limit', 'error');
-            e.target.value = '';
-            return;
-        }
-
-        // Show file details
-        document.getElementById('fileName').textContent = file.name;
-        document.getElementById('fileSize').textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
-        document.getElementById('fileSelected').classList.add('active');
-    }
-
-    showStatus(message, type = 'processing') {
-        const statusEl = document.getElementById('statusMessage');
-        const textEl = document.getElementById('statusText');
-
-        statusEl.className = 'status-message active ' + type;
-
-        if (type === 'processing') {
-            statusEl.innerHTML = '<i class="ri-loader-4-line loading-spinner"></i><span>' + message + '</span>';
-        } else if (type === 'success') {
-            statusEl.innerHTML = '<i class="ri-checkbox-circle-line"></i><span>' + message + '</span>';
-        } else if (type === 'error') {
-            statusEl.innerHTML = '<i class="ri-error-warning-line"></i><span>' + message + '</span>';
-        }
-
-        if (type !== 'processing') {
-            setTimeout(() => {
-                statusEl.classList.remove('active');
-            }, 4000);
-        }
+    setScanOverlay(active) {
+        // Visual scanning overlay removed for clean CCTV feed appearance
     }
 }
 
-// Initialize scanner
 document.addEventListener('DOMContentLoaded', () => {
-    new PlateScanner();
+    new AutoEntryScanner({
+        cameraId: 'gate1-entry',
+        apiUrl: '{{ route("api.auto-detect") }}',
+        csrfToken: '{{ csrf_token() }}',
+    });
 });
 </script>
 @endsection
