@@ -82,7 +82,7 @@
         width: 100%;
         height: 100%;
         object-fit: cover;
-        transform: scaleX(-1);
+        transform: none;
     }
 
     /* Clean CCTV Status Badge */
@@ -514,8 +514,8 @@ class AutoEntryScanner {
         this.isPendingRequest = false;
 
         // Timing
-        this.scanIntervalMs = 2000; // scan every 2 seconds
-        this.cooldownMs = 5000;     // 5s cooldown after successful detection
+        this.scanIntervalMs = 1200; // scan every 1.2 seconds for responsive detection
+        this.cooldownMs = 4000;     // 4s cooldown after successful detection
         this.scanTimer = null;
         this.cooldownUntil = 0;
 
@@ -542,6 +542,11 @@ class AutoEntryScanner {
 
             this.stream = await navigator.mediaDevices.getUserMedia(constraints);
             this.video.srcObject = this.stream;
+            try {
+                await this.video.play();
+            } catch (playErr) {
+                console.log('Video autoplay note:', playErr);
+            }
             this.isCameraActive = true;
             this.updateCameraUI();
             this.updateDetectionStatus('idle', 'Camera active — auto-scanning for vehicles...');
@@ -618,16 +623,13 @@ class AutoEntryScanner {
         this.updateStats();
 
         try {
-            // Capture frame silently from live video
+            // Capture frame cleanly from live video (natural orientation)
             this.canvas.width = this.video.videoWidth;
             this.canvas.height = this.video.videoHeight;
             const ctx = this.canvas.getContext('2d');
-            ctx.save();
-            ctx.scale(-1, 1);
-            ctx.drawImage(this.video, -this.canvas.width, 0);
-            ctx.restore();
+            ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
 
-            const frameData = this.canvas.toDataURL('image/jpeg', 0.85);
+            const frameData = this.canvas.toDataURL('image/jpeg', 0.88);
 
             // Send to API
             const response = await fetch(this.apiUrl, {
@@ -721,10 +723,9 @@ class AutoEntryScanner {
 
     updateDetectionStatus(type, message) {
         const el = document.getElementById('detectionStatus');
-        const textEl = document.getElementById('detectionStatusText');
+        if (!el) return;
 
         el.className = 'detection-status ' + type;
-        textEl.textContent = message;
 
         const icons = {
             idle: '<i class="ri-radar-line"></i>',

@@ -150,6 +150,23 @@ def detect_and_recognize(yolo_model, ocr_recognizer, image_path, base_dir, telem
 
         plate_text, ocr_conf = run_fast_plate_ocr(ocr_recognizer, cropped_path, telemetry)
         score_crop = score_text(plate_text)
+
+        # Fallback 1: Test horizontal flip if initial read is weak/unrecognized (handles mirrored webcams)
+        if score_crop < 4.0 or ocr_conf < 0.35:
+            flipped_crop = cv2.flip(cropped_img, 1)
+            flipped_path = f"{base_name}_flip{ext}"
+            cv2.imwrite(flipped_path, flipped_img if 'flipped_img' in locals() else flipped_crop)
+            flip_text, flip_conf = run_fast_plate_ocr(ocr_recognizer, flipped_path, telemetry)
+            if os.path.exists(flipped_path):
+                try:
+                    os.remove(flipped_path)
+                except Exception:
+                    pass
+            if score_text(flip_text) > score_crop and flip_conf > ocr_conf:
+                plate_text, ocr_conf = flip_text, flip_conf
+                score_crop = score_text(plate_text)
+                cv2.imwrite(cropped_path, flipped_crop)
+
         if score_crop < 5.0:
             full_text, full_conf = run_fast_plate_ocr(ocr_recognizer, image_path, telemetry)
             score_full = score_text(full_text)
@@ -187,6 +204,21 @@ def detect_and_recognize(yolo_model, ocr_recognizer, image_path, base_dir, telem
             score_crop = score_text(crop_text)
             if score_crop > score_full:
                 plate_text, ocr_conf = crop_text, crop_conf
+                score_full = score_crop
+
+        # Fallback 2: Check flipped image in case full frame was mirrored
+        if score_full < 4.0 or ocr_conf < 0.35:
+            flipped_full = cv2.flip(img, 1)
+            flipped_full_path = f"{base_name}_flipfull{ext}"
+            cv2.imwrite(flipped_full_path, flipped_full)
+            ff_text, ff_conf = run_fast_plate_ocr(ocr_recognizer, flipped_full_path, telemetry)
+            if os.path.exists(flipped_full_path):
+                try:
+                    os.remove(flipped_full_path)
+                except Exception:
+                    pass
+            if score_text(ff_text) > score_full and ff_conf > ocr_conf:
+                plate_text, ocr_conf = ff_text, ff_conf
 
         relative_cropped_path = os.path.relpath(cropped_path, base_dir).replace('\\', '/')
 

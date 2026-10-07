@@ -218,13 +218,10 @@ class PlateOcrController extends Controller
 
             $exitTimestamp = now();
 
-            // Find the most recent 'entered' record for this plate
-            $entry = PlateEntry::where("plate_number", $plateNumber)
-                ->where("status", "entered")
-                ->latest("entry_time")
-                ->first();
-
-            $isMatchFound = false;
+            // Find the most recent 'entered' record for this plate using multi-tier matching
+            $matchResult = $this->findMatchingEnteredVehicle($plateNumber);
+            $entry = $matchResult ? $matchResult['entry'] : null;
+            $isMatchFound = ($entry !== null);
 
             if ($entry) {
                 // Calculate duration
@@ -248,10 +245,11 @@ class PlateOcrController extends Controller
                     "duration_minutes" => $durationMinutes,
                     "parking_fee" => $totalFeeAmount,
                     "payment_status" => "unpaid",
-                    "remarks" => trim(($entry->remarks ?? "") . " | Exited using YOLOv8 & " . ucfirst($ocrEngine))
+                    "remarks" => trim(($entry->remarks ?? "") . " | Exited: YOLOv8 & " . ucfirst($ocrEngine) . " (Tier: " . $matchResult['tier'] . ")")
                 ]);
 
                 $isMatchFound = true;
+                $plateNumber = $entry->plate_number; // Use canonical entered plate number
                 $entryTime = $entry->entry_time;
                 $duration = $entry->entry_time->diff($exitTimestamp);
                 $minutes = $durationMinutes;
@@ -814,7 +812,7 @@ class PlateOcrController extends Controller
 
         $cameraId = $request->input("camera_id");
         $cameraType = $request->input("camera_type");
-        $minConfidence = 40.0; // minimum confidence to accept a detection
+        $minConfidence = 20.0; // accept valid reads down to 20%
 
         try {
             // Decode base64 frame
@@ -968,11 +966,22 @@ class PlateOcrController extends Controller
 
             // ─── EXIT CAMERA ────────────────────────────────────────────
             if ($cameraType === "exit") {
+                // Find matching active entry using multi-tier matcher
+                $matchResult = $this->findMatchingEnteredVehicle($plateNumber);
+                $entry = $matchResult ? $matchResult['entry'] : null;
+                $isMatchFound = ($entry !== null);
+
+                // Use the canonical plate number from entry if matched, or the raw read plate
+                $effectivePlate = $isMatchFound ? $entry->plate_number : $plateNumber;
+
                 // Deduplication: skip if same plate exited within 60 seconds
-                $recentExit = PlateEntry::where('plate_number', $plateNumber)
-                    ->where('status', 'exited')
+                $cleanEffective = strtoupper(preg_replace('/[^A-Z0-9]/', '', $effectivePlate));
+                $recentExit = PlateEntry::where('status', 'exited')
                     ->where('exit_time', '>=', now()->subSeconds(60))
-                    ->first();
+                    ->get()
+                    ->first(function ($item) use ($cleanEffective) {
+                        return strtoupper(preg_replace('/[^A-Z0-9]/', '', $item->plate_number)) === $cleanEffective;
+                    });
 
                 if ($recentExit) {
                     if (file_exists($tempPath)) { unlink($tempPath); }
@@ -980,8 +989,26 @@ class PlateOcrController extends Controller
                     return response()->json([
                         "success" => true,
                         "duplicate" => true,
-                        "plate" => $plateNumber,
-                        "message" => "Vehicle {$plateNumber} exit already recorded (dedup)",
+                        "plate" => $effectivePlate,
+                        "message" => "Vehicle {$effectivePlate} exit already recorded (dedup)",
+                    ]);
+                }
+
+                // If not matched, filter out partial/noisy reads when vehicles are currently inside
+                $cleanRead = strtoupper(preg_replace('/[^A-Z0-9]/', '', $plateNumber));
+                $hasLetters = preg_match('/[A-Z]/', $cleanRead);
+                $hasNumbers = preg_match('/[0-9]/', $cleanRead);
+                $isValidPlateFormat = ($hasLetters && $hasNumbers && strlen($cleanRead) >= 5);
+                $activeVehiclesCount = PlateEntry::where('status', 'entered')->count();
+
+                if (!$isMatchFound && $activeVehiclesCount > 0 && (!$isValidPlateFormat || $confidence < 55.0)) {
+                    // Frame was noisy/partial and didn't match any car inside; keep scanning smoothly
+                    if (file_exists($tempPath)) { unlink($tempPath); }
+
+                    return response()->json([
+                        "success" => false,
+                        "no_plate" => true,
+                        "message" => "Scanning: Read candidate '{$plateNumber}', waiting for plate matching entered vehicle...",
                     ]);
                 }
 
@@ -1006,20 +1033,12 @@ class PlateOcrController extends Controller
                     copy($tempPath, storage_path("app/public/" . $croppedPublicPath));
                 }
 
-                // Find matching active entry
-                $entry = PlateEntry::where("plate_number", $plateNumber)
-                    ->where("status", "entered")
-                    ->latest("entry_time")
-                    ->first();
-
-                $isMatchFound = false;
                 $entryTime = null;
                 $durationMinutes = 0;
                 $totalFeeAmount = 5.00;
                 $formattedDuration = "N/A";
 
                 if ($entry) {
-                    $isMatchFound = true;
                     $entryTime = $entry->entry_time;
                     $durationMinutes = $entryTime->diffInMinutes($timestamp);
 
@@ -1036,6 +1055,8 @@ class PlateOcrController extends Controller
                     $dm = $durationMinutes % 60;
                     $formattedDuration = $dh > 0 ? "{$dh}h {$dm}m" : "{$dm}m";
 
+                    $tierLabel = $matchResult ? $matchResult['tier'] : 'exact';
+
                     // Close session
                     $entry->update([
                         "status" => "exited",
@@ -1046,7 +1067,7 @@ class PlateOcrController extends Controller
                         "duration_minutes" => $durationMinutes,
                         "parking_fee" => $totalFeeAmount,
                         "payment_status" => "unpaid",
-                        "remarks" => trim(($entry->remarks ?? "") . " | Auto-exit [{$cameraId}]: YOLOv8 & " . ucfirst($ocrEngine)),
+                        "remarks" => trim(($entry->remarks ?? "") . " | Auto-exit [{$cameraId}]: YOLOv8 & " . ucfirst($ocrEngine) . " (Matched: {$tierLabel})"),
                     ]);
                 } else {
                     // No matching entry — log as exit-only
@@ -1074,7 +1095,7 @@ class PlateOcrController extends Controller
                 $paymentPayload = json_encode([
                     "type" => "PARKING_PAYMENT",
                     "facility" => "Autotrace Parking",
-                    "plate" => $plateNumber,
+                    "plate" => $effectivePlate,
                     "time_in" => $entryTime ? $entryTime->format("Y-m-d H:i:s") : "N/A",
                     "time_out" => $timestamp->format("Y-m-d H:i:s"),
                     "duration_minutes" => $durationMinutes,
@@ -1095,7 +1116,8 @@ class PlateOcrController extends Controller
                 return response()->json([
                     "success" => true,
                     "type" => "exit",
-                    "plate" => $plateNumber,
+                    "plate" => $effectivePlate,
+                    "detected_plate" => $plateNumber,
                     "confidence" => $confidence,
                     "ocr_engine" => $ocrEngine,
                     "timestamp" => $timestamp->toIso8601String(),
@@ -1104,6 +1126,8 @@ class PlateOcrController extends Controller
                     "camera_id" => $cameraId,
                     "entry_id" => $entry->id,
                     "is_match_found" => $isMatchFound,
+                    "match_tier" => $matchResult['tier'] ?? null,
+                    "entry_gate" => $isMatchFound ? ($entry->gate_entry ?? "Gate 1") : "Unknown",
                     "entry_time" => $entryTime ? $entryTime->format("M d, Y • h:i:s A") : null,
                     "duration" => $formattedDuration,
                     "duration_minutes" => $durationMinutes,
@@ -1111,7 +1135,9 @@ class PlateOcrController extends Controller
                     "formatted_fee" => $formattedFee,
                     "payment_qr" => $paymentQrCode,
                     "image_url" => asset("storage/" . $publicPath),
-                    "message" => "Vehicle {$plateNumber} exit recorded — Fee: {$formattedFee}",
+                    "message" => $isMatchFound
+                        ? "Vehicle {$effectivePlate} matched from Entry & recorded exit — Fee: {$formattedFee}"
+                        : "Vehicle {$effectivePlate} exit recorded — Fee: {$formattedFee}",
                 ]);
             }
 
@@ -1219,5 +1245,98 @@ class PlateOcrController extends Controller
                 ];
             }),
         ]);
+    }
+
+    /**
+     * Find an active entered vehicle matching the detected exit plate.
+     * Uses multi-tier matching:
+     * 1. Exact alphanumeric normalization (removes spaces, dashes, symbols)
+     * 2. Visual OCR confusion canonicalization (O/0, I/1/L, B/8/D, S/5, Z/2, G/6)
+     * 3. Substring & prefix/suffix matching (for plates with clipped/extra characters)
+     * 4. Levenshtein edit distance (<= 1 for length >= 4, <= 2 for length >= 6)
+     *
+     * @param string $rawExitPlate
+     * @return array{entry: PlateEntry, tier: string, score: float}|null
+     */
+    private function findMatchingEnteredVehicle(string $rawExitPlate): ?array
+    {
+        $cleanExit = strtoupper(preg_replace('/[^A-Z0-9]/', '', $rawExitPlate));
+        if (strlen($cleanExit) < 3) {
+            return null;
+        }
+
+        // Fetch all vehicles currently entered in the facility
+        // Prioritize current active session first, then older active entries
+        $activeSession = ParkingSession::getActive();
+        $activeSessionId = $activeSession ? $activeSession->id : 0;
+
+        $enteredEntries = PlateEntry::where('status', 'entered')
+            ->orderByRaw("CASE WHEN session_id = ? THEN 0 ELSE 1 END", [$activeSessionId])
+            ->latest('entry_time')
+            ->get();
+
+        if ($enteredEntries->isEmpty()) {
+            return null;
+        }
+
+        // Tier 1: Exact normalized alphanumeric match (e.g. "NBC 1234" == "NBC1234" == "NBC-1234")
+        foreach ($enteredEntries as $entry) {
+            $cleanEntry = strtoupper(preg_replace('/[^A-Z0-9]/', '', $entry->plate_number));
+            if ($cleanEntry === $cleanExit) {
+                return ['entry' => $entry, 'tier' => 'exact', 'score' => 1.0];
+            }
+        }
+
+        // Tier 2: OCR visual confusion equivalence
+        // E.g. '0' <-> 'O', '1' <-> 'I', '8' <-> 'B' <-> 'D', '5' <-> 'S', '2' <-> 'Z', '6' <-> 'G'
+        $ocrReplacements = [
+            '0' => 'O', '1' => 'I', 'L' => 'I', '8' => 'B',
+            'D' => 'B', '5' => 'S', '2' => 'Z', '6' => 'G',
+        ];
+        $exitSkeleton = strtr($cleanExit, $ocrReplacements);
+
+        foreach ($enteredEntries as $entry) {
+            $cleanEntry = strtoupper(preg_replace('/[^A-Z0-9]/', '', $entry->plate_number));
+            $entrySkeleton = strtr($cleanEntry, $ocrReplacements);
+            if ($entrySkeleton === $exitSkeleton) {
+                return ['entry' => $entry, 'tier' => 'ocr_skeleton', 'score' => 0.95];
+            }
+        }
+
+        // Tier 3: Substring / Prefix / Suffix match
+        // E.g. Exit read "NBC123" and entered was "NBC1234", or vice versa
+        foreach ($enteredEntries as $entry) {
+            $cleanEntry = strtoupper(preg_replace('/[^A-Z0-9]/', '', $entry->plate_number));
+            $lenExit = strlen($cleanExit);
+            $lenEntry = strlen($cleanEntry);
+            if ($lenExit >= 4 && $lenEntry >= 4) {
+                if (str_contains($cleanExit, $cleanEntry) || str_contains($cleanEntry, $cleanExit)) {
+                    return ['entry' => $entry, 'tier' => 'substring', 'score' => 0.90];
+                }
+            }
+        }
+
+        // Tier 4: Levenshtein edit distance
+        // Matches plates with 1-2 character variation (lighting, angled plate, motion blur)
+        $bestMatch = null;
+        $bestDist = 999;
+
+        foreach ($enteredEntries as $entry) {
+            $cleanEntry = strtoupper(preg_replace('/[^A-Z0-9]/', '', $entry->plate_number));
+            $dist = levenshtein($cleanExit, $cleanEntry);
+            $maxLen = max(strlen($cleanExit), strlen($cleanEntry));
+            $allowedDist = ($maxLen >= 6) ? 2 : 1;
+
+            if ($dist <= $allowedDist && $dist < $bestDist) {
+                $bestDist = $dist;
+                $bestMatch = $entry;
+            }
+        }
+
+        if ($bestMatch) {
+            return ['entry' => $bestMatch, 'tier' => 'levenshtein_' . $bestDist, 'score' => 0.85];
+        }
+
+        return null;
     }
 }

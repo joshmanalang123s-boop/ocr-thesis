@@ -82,7 +82,7 @@
         width: 100%;
         height: 100%;
         object-fit: cover;
-        transform: scaleX(-1);
+        transform: none;
     }
 
     /* Clean CCTV Status Badge */
@@ -479,8 +479,8 @@ class AutoExitScanner {
         this.isAutoScanEnabled = true;
         this.isPendingRequest = false;
 
-        this.scanIntervalMs = 2000;
-        this.cooldownMs = 5000;
+        this.scanIntervalMs = 1200; // scan every 1.2s
+        this.cooldownMs = 4000;
         this.scanTimer = null;
         this.cooldownUntil = 0;
 
@@ -504,6 +504,11 @@ class AutoExitScanner {
             };
             this.stream = await navigator.mediaDevices.getUserMedia(constraints);
             this.video.srcObject = this.stream;
+            try {
+                await this.video.play();
+            } catch (playErr) {
+                console.log('Video autoplay note:', playErr);
+            }
             this.isCameraActive = true;
             this.updateCameraUI();
             this.updateDetectionStatus('idle', 'Camera active — auto-scanning for exiting vehicles...');
@@ -565,12 +570,9 @@ class AutoExitScanner {
             this.canvas.width = this.video.videoWidth;
             this.canvas.height = this.video.videoHeight;
             const ctx = this.canvas.getContext('2d');
-            ctx.save();
-            ctx.scale(-1, 1);
-            ctx.drawImage(this.video, -this.canvas.width, 0);
-            ctx.restore();
+            ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
 
-            const frameData = this.canvas.toDataURL('image/jpeg', 0.85);
+            const frameData = this.canvas.toDataURL('image/jpeg', 0.88);
 
             const response = await fetch(this.apiUrl, {
                 method: 'POST',
@@ -599,7 +601,9 @@ class AutoExitScanner {
                     this.addLogEntry(result);
 
                     const feeText = result.formatted_fee ? ' — Fee: ' + result.formatted_fee : '';
-                    const matchText = result.is_match_found ? ' (matched entry)' : ' (no matching entry)';
+                    const matchText = result.is_match_found
+                        ? ` (Matched ${result.entry_gate || 'Entry'} • ${result.duration})`
+                        : ' (no matching entry)';
                     this.updateDetectionStatus('found',
                         '✓ Exit: ' + result.plate + matchText + feeText);
 
@@ -632,6 +636,9 @@ class AutoExitScanner {
         const iconName = result.is_match_found ? 'ri-checkbox-circle-fill' : 'ri-logout-box-r-fill';
         const durationText = result.duration || 'N/A';
         const feeText = result.formatted_fee || '₱5.00';
+        const metaText = result.is_match_found
+            ? ` • Matched ${result.entry_gate || 'Entry'} • Duration: ${durationText}`
+            : ' • No matching entry';
 
         const item = document.createElement('div');
         item.className = 'log-item';
@@ -640,8 +647,7 @@ class AutoExitScanner {
             <div class="log-details">
                 <div class="log-plate">${result.plate}</div>
                 <div class="log-meta">
-                    ${result.formatted_time} • ${result.gate}
-                    ${result.is_match_found ? ' • Duration: ' + durationText : ' • No matching entry'}
+                    ${result.formatted_time} • ${result.gate}${metaText}
                 </div>
             </div>
             <span class="log-fee">${feeText}</span>

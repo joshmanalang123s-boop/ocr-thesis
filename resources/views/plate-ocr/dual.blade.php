@@ -192,7 +192,7 @@
         width: 100%;
         height: 100%;
         object-fit: cover;
-        transform: scaleX(-1);
+        transform: none;
     }
 
     /* Clean CCTV Status Pill */
@@ -726,6 +726,11 @@ class GateCameraScanner {
         try {
             this.stream = await navigator.mediaDevices.getUserMedia(constraints);
             this.video.srcObject = this.stream;
+            try {
+                await this.video.play();
+            } catch (playErr) {
+                console.log('Video autoplay note:', playErr);
+            }
             this.isCameraActive = true;
             this.updateCameraUI();
             this.updateStatusBox('idle', `${this.gateTitle} active — scanning for vehicles...`);
@@ -806,12 +811,9 @@ class GateCameraScanner {
             this.canvas.width = this.video.videoWidth;
             this.canvas.height = this.video.videoHeight;
             const ctx = this.canvas.getContext('2d');
-            ctx.save();
-            ctx.scale(-1, 1);
-            ctx.drawImage(this.video, -this.canvas.width, 0);
-            ctx.restore();
+            ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
 
-            const frameData = this.canvas.toDataURL('image/jpeg', 0.85);
+            const frameData = this.canvas.toDataURL('image/jpeg', 0.88);
 
             const response = await fetch(this.apiUrl, {
                 method: 'POST',
