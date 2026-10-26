@@ -232,7 +232,7 @@
             <div class="plate-hero-badge">
                 <div class="number">{{ $plateNumber }}</div>
                 <div style="font-size: 0.78125rem; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.05em;">
-                    Entry Time: {{ $timestamp->format('M d, Y • h:i:s A') }}
+                    Entry Time: {{ $timestamp->timezone('Asia/Manila')->format('M d, Y • h:i:s A') }}
                 </div>
             </div>
 
@@ -268,12 +268,12 @@
     </div>
 
     <div style="text-align: center; font-size: 12px; margin-bottom: 6px;">
-        TIME IN: {{ $timestamp->format('M d, Y h:i A') }}
+        TIME IN: {{ $timestamp->timezone('Asia/Manila')->format('M d, Y h:i A') }}
     </div>
 
     <div style="text-align: center; font-size: 10px; border-top: 1px dashed #000; padding-top: 8px; margin-top: 8px;">
         <div>KEEP TICKET UNTIL CHECKOUT</div>
-        <div>AUTOTRACE PARKING</div>
+        <div>SABINO PARKING</div>
     </div>
 </div>
 @endsection

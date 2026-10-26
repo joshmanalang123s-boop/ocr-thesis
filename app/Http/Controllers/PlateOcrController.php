@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Database\Schema\Blueprint;
 use App\Models\PlateEntry;
 use App\Models\ParkingSession;
+use App\Models\ParkingRate;
+use App\Models\PlateEntryAudit;
+use Illuminate\Support\Facades\Auth;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class PlateOcrController extends Controller
@@ -84,34 +87,33 @@ class PlateOcrController extends Controller
 
         $startTime = microtime(true);
 
-        if (!$this->ensureBackendRunning()) {
-            $duration = round(microtime(true) - $startTime, 2);
-            $errorMsg = 'GPU OCR backend is not available.';
-            file_put_contents('php://stderr', "\n\n>>> [YOLOv8 & OCR Pipeline Execution Stats] <<<\n");
-            file_put_contents('php://stderr', "Image Path: {$absolutePath}\n");
-            file_put_contents('php://stderr', "Time Elapsed: {$duration} seconds\n");
-            file_put_contents('php://stderr', "Detection Result: FAILED - {$errorMsg}\n");
-            file_put_contents('php://stderr', ">>> ----------------------------------- <<<\n\n");
-            return [
-                'success' => false,
-                'error' => $errorMsg,
-            ];
-        }
-
         try {
-            $response = Http::timeout(30)->post('http://127.0.0.1:8600/detect', [
-                'image_path' => $absolutePath,
-            ]);
+            // Fast path: POST directly without health-check overhead
+            try {
+                $response = Http::timeout(10)->post('http://127.0.0.1:8600/detect', [
+                    'image_path' => $absolutePath,
+                ]);
+            } catch (\Exception $e) {
+                // Backend might be booting or offline; spawn/wait and retry once
+                if (!$this->ensureBackendRunning()) {
+                    $errorMsg = 'GPU OCR backend is not available.';
+                    file_put_contents('php://stderr', "\n>>> [OCR Pipeline] FAILED: {$errorMsg} <<<\n");
+                    return [
+                        'success' => false,
+                        'error' => $errorMsg,
+                    ];
+                }
+
+                $response = Http::timeout(15)->post('http://127.0.0.1:8600/detect', [
+                    'image_path' => $absolutePath,
+                ]);
+            }
 
             $duration = round(microtime(true) - $startTime, 2);
 
             if (!$response->successful()) {
                 $errorMsg = 'Backend returned HTTP ' . $response->status();
-                file_put_contents('php://stderr', "\n\n>>> [YOLOv8 & OCR Pipeline Execution Stats] <<<\n");
-                file_put_contents('php://stderr', "Image Path: {$absolutePath}\n");
-                file_put_contents('php://stderr', "Time Elapsed: {$duration} seconds\n");
-                file_put_contents('php://stderr', "Detection Result: FAILED - {$errorMsg}\n");
-                file_put_contents('php://stderr', ">>> ----------------------------------- <<<\n\n");
+                file_put_contents('php://stderr', "\n>>> [OCR Pipeline] FAILED: {$errorMsg} ({$duration}s) <<<\n");
                 return [
                     'success' => false,
                     'error' => $errorMsg,
@@ -132,21 +134,12 @@ class PlateOcrController extends Controller
             $ocrMs = $telemetry['ocr_ms'] ?? 'n/a';
             $totalMs = $telemetry['total_ms'] ?? 'n/a';
 
-            file_put_contents('php://stderr', "\n\n>>> [YOLOv8 & OCR Pipeline Execution Stats] <<<\n");
-            file_put_contents('php://stderr', "Image Path: {$absolutePath}\n");
-            file_put_contents('php://stderr', "Time Elapsed: {$duration} seconds\n");
-            file_put_contents('php://stderr', "YOLO: {$yoloMs}ms | OCR: {$ocrMs}ms | Total: {$totalMs}ms\n");
-            file_put_contents('php://stderr', "Detection Result: {$resultText}\n");
-            file_put_contents('php://stderr', ">>> ----------------------------------- <<<\n\n");
+            file_put_contents('php://stderr', "\n>>> [OCR] {$resultText} | YOLO: {$yoloMs}ms OCR: {$ocrMs}ms Total: {$totalMs}ms ({$duration}s) <<<\n");
 
             return $result;
         } catch (\Exception $e) {
             $duration = round(microtime(true) - $startTime, 2);
-            file_put_contents('php://stderr', "\n\n>>> [YOLOv8 & OCR Pipeline Execution Stats] <<<\n");
-            file_put_contents('php://stderr', "Image Path: {$absolutePath}\n");
-            file_put_contents('php://stderr', "Time Elapsed: {$duration} seconds\n");
-            file_put_contents('php://stderr', "Detection Exception: " . $e->getMessage() . "\n");
-            file_put_contents('php://stderr', ">>> ----------------------------------- <<<\n\n");
+            file_put_contents('php://stderr', "\n>>> [OCR Pipeline] Exception: " . $e->getMessage() . " ({$duration}s) <<<\n");
             return [
                 'success' => false,
                 'error' => 'Exception during plate detection: ' . $e->getMessage(),
@@ -168,6 +161,20 @@ class PlateOcrController extends Controller
     public function exitIndex()
     {
         return view("plate-ocr.exit");
+    }
+
+    /**
+     * Calculate parking fee based on duration in minutes and vehicle type.
+     * Enforces mandatory 15-minute free parking rule (<= 15 minutes is ₱0.00).
+     *
+     * @param int $durationMinutes
+     * @param string $vehicleType
+     * @return float
+     */
+    public static function calculateParkingFee($durationMinutes, $vehicleType = 'car')
+    {
+        $breakdown = ParkingRate::getActiveRate()->calculateFee($durationMinutes, $vehicleType);
+        return (float)$breakdown['fee'];
     }
 
     /**
@@ -223,40 +230,43 @@ class PlateOcrController extends Controller
             $entry = $matchResult ? $matchResult['entry'] : null;
             $isMatchFound = ($entry !== null);
 
-            if ($entry) {
-                // Calculate duration
-                $durationMinutes = $entry->entry_time->diffInMinutes($exitTimestamp);
+            $activeRate = ParkingRate::getActiveRate();
 
-                // Calculate Parking Fee
-                $hours = max(1, (int)ceil($durationMinutes / 60));
-                if ($hours <= 3) {
-                    $totalFeeAmount = 5.00;
-                } else {
-                    $totalFeeAmount = 5.00 + (($hours - 3) * 2.00);
-                }
+            if ($entry) {
+                // Calculate duration in minutes accurately
+                $durationMinutes = $entry->entry_time ? $entry->entry_time->diffInMinutes($exitTimestamp) : 0;
+
+                // Calculate Parking Fee with mandatory 15-minute free grace period
+                $feeBreakdown = $activeRate->calculateFee($durationMinutes, $entry->vehicle_type ?? 'car');
+                $totalFeeAmount = $feeBreakdown['fee'];
+                $isFreeGrace = $feeBreakdown['is_free'];
 
                 // Mark the existing entry as exited
                 $entry->update([
                     "status" => "exited",
                     "exit_time" => $exitTimestamp,
-                    "exit_confidence" => $confidence, // Store as percentage
+                    "exit_confidence" => $confidence,
                     "exit_image_path" => $path,
                     "gate_exit" => "Gate 2",
                     "duration_minutes" => $durationMinutes,
                     "parking_fee" => $totalFeeAmount,
-                    "payment_status" => "unpaid",
-                    "remarks" => trim(($entry->remarks ?? "") . " | Exited: YOLOv8 & " . ucfirst($ocrEngine) . " (Tier: " . $matchResult['tier'] . ")")
+                    "is_free_grace" => $isFreeGrace,
+                    "applied_rate_snapshot" => $feeBreakdown['snapshot'],
+                    "rate_id" => $activeRate->id,
+                    "payment_status" => $isFreeGrace ? "waived" : "unpaid",
+                    "remarks" => trim(($entry->remarks ?? "") . " | Exited: YOLOv8 & " . ucfirst($ocrEngine) . " (Tier: " . $matchResult['tier'] . ") — " . $feeBreakdown['rule_applied'])
                 ]);
 
                 $isMatchFound = true;
-                $plateNumber = $entry->plate_number; // Use canonical entered plate number
+                $plateNumber = $entry->plate_number; // Canonical entered plate number
                 $entryTime = $entry->entry_time;
-                $duration = $entry->entry_time->diff($exitTimestamp);
+                $duration = $entry->entry_time ? $entry->entry_time->diff($exitTimestamp) : null;
                 $minutes = $durationMinutes;
             } else {
-                // No matching entry found — log as exit-only detection
-                $totalFeeAmount = 5.00; // Base fee for unknown duration
-                $minutes = 60; // Default assumption
+                // No matching entry found — log as exceptional exit detection
+                $totalFeeAmount = (float)$activeRate->base_rate;
+                $minutes = 0;
+                $isFreeGrace = false;
 
                 $entry = PlateEntry::create([
                     "session_id" => ParkingSession::getActive()->id,
@@ -270,15 +280,21 @@ class PlateOcrController extends Controller
                     "gate_exit" => "Gate 2",
                     "duration_minutes" => 0,
                     "parking_fee" => $totalFeeAmount,
+                    "is_free_grace" => false,
+                    "applied_rate_snapshot" => [
+                        'note' => 'Exceptional: Exit recorded with missing entry record',
+                        'base_rate' => $totalFeeAmount,
+                    ],
+                    "rate_id" => $activeRate->id,
                     "payment_status" => "unpaid",
                     "status" => "exited",
-                    "remarks" => "Exit only: Detected using YOLOv8 & " . ucfirst($ocrEngine)
+                    "remarks" => "Exceptional Exit: No active entry matched. Assessed base fee ₱" . number_format($totalFeeAmount, 2)
                 ]);
                 $entryTime = null;
                 $duration = null;
             }
 
-            $formattedFee = "₱" . number_format($totalFeeAmount, 2);
+            $formattedFee = $isFreeGrace ? "₱0.00 (FREE — 15m Grace)" : "₱" . number_format($totalFeeAmount, 2);
 
             // Generate Payment Verification QR Code
             $paymentPayload = json_encode([
@@ -369,6 +385,25 @@ class PlateOcrController extends Controller
             }
 
             $timestamp = now();
+
+            // Duplicate active parking session check
+            $cleanPlate = strtoupper(preg_replace('/[^A-Z0-9]/', '', $plateNumber));
+            if ($cleanPlate !== 'UNKNOWN') {
+                $existingActive = PlateEntry::where('status', 'entered')
+                    ->get()
+                    ->first(function ($item) use ($cleanPlate) {
+                        return strtoupper(preg_replace('/[^A-Z0-9]/', '', $item->plate_number)) === $cleanPlate;
+                    });
+
+                if ($existingActive && !$request->boolean('allow_duplicate')) {
+                    $entryTimeFormatted = $existingActive->entry_time ? $existingActive->entry_time->format('M d, Y • h:i A') : 'earlier';
+                    return redirect()
+                        ->back()
+                        ->with("error", "Vehicle {$plateNumber} is already currently parked inside facility (Entered at {$entryTimeFormatted}). Duplicate entry prevented.")
+                        ->with("duplicate_plate", $plateNumber)
+                        ->with("duplicate_entry_id", $existingActive->id);
+                }
+            }
 
             // Persist entry so admins can view it on the dashboard/history
             $entry = PlateEntry::create([
@@ -542,6 +577,16 @@ class PlateOcrController extends Controller
         $completedSessions = PlateEntry::where('session_id', $activeSession->id)
             ->where('status', 'exited')
             ->count();
+        $freeSessionsCount = PlateEntry::where('session_id', $activeSession->id)
+            ->where('status', 'exited')
+            ->where(function($q) {
+                $q->where('is_free_grace', true)
+                  ->orWhere('parking_fee', '<=', 0)
+                  ->orWhere('duration_minutes', '<=', 15);
+            })->count();
+        $paidSessionsCount = max(0, $completedSessions - $freeSessionsCount);
+
+        $activeRate = ParkingRate::getActiveRate();
 
         // Calculate actual OCR accuracy from confidence scores in active session
         $avgConfidence = PlateEntry::where('session_id', $activeSession->id)
@@ -566,6 +611,9 @@ class PlateOcrController extends Controller
                 "sessionRevenue",
                 "currentlyInside",
                 "completedSessions",
+                "freeSessionsCount",
+                "paidSessionsCount",
+                "activeRate",
                 "successRate",
                 "recentExited"
             ),
@@ -643,15 +691,16 @@ class PlateOcrController extends Controller
 
         $totalExited = PlateEntry::where("status", "exited")->count();
         $currentlyInside = PlateEntry::where("status", "entered")->count();
+        $activeRate = ParkingRate::getActiveRate();
 
         return view(
             "plate-ocr.history",
-            compact("entries", "total", "today", "week", "successRate", "latestEntered", "latestExited", "totalExited", "currentlyInside"),
+            compact("entries", "total", "today", "week", "successRate", "latestEntered", "latestExited", "totalExited", "currentlyInside", "activeRate"),
         );
     }
 
     /**
-     * Mark a vehicle as exited
+     * Mark a vehicle as exited (Manual exit trigger)
      */
     public function exitVehicle(Request $request, $id)
     {
@@ -664,13 +713,11 @@ class PlateOcrController extends Controller
         $exitTime = now();
         $durationMinutes = $entry->entry_time ? $entry->entry_time->diffInMinutes($exitTime) : 0;
 
-        // Calculate parking fee
-        $hours = max(1, (int)ceil($durationMinutes / 60));
-        if ($hours <= 3) {
-            $parkingFee = 5.00;
-        } else {
-            $parkingFee = 5.00 + (($hours - 3) * 2.00);
-        }
+        // Calculate parking fee with 15-minute free grace period
+        $activeRate = ParkingRate::getActiveRate();
+        $feeBreakdown = $activeRate->calculateFee($durationMinutes, $entry->vehicle_type ?? 'car');
+        $parkingFee = $feeBreakdown['fee'];
+        $isFreeGrace = $feeBreakdown['is_free'];
 
         $entry->update([
             "status" => "exited",
@@ -678,9 +725,87 @@ class PlateOcrController extends Controller
             "gate_exit" => "Gate 2",
             "duration_minutes" => $durationMinutes,
             "parking_fee" => $parkingFee,
+            "is_free_grace" => $isFreeGrace,
+            "applied_rate_snapshot" => $feeBreakdown['snapshot'],
+            "rate_id" => $activeRate->id,
+            "payment_status" => $isFreeGrace ? "waived" : "unpaid",
+            "remarks" => trim(($entry->remarks ?? "") . " | Manual Exit: " . $feeBreakdown['rule_applied']),
         ]);
 
-        return redirect()->back()->with("success", "Vehicle {$entry->plate_number} marked as exited.");
+        $feeFormatted = $isFreeGrace ? "₱0.00 (FREE — 15m Grace)" : "₱" . number_format($parkingFee, 2);
+        return redirect()->back()->with("success", "Vehicle {$entry->plate_number} marked as exited. Fee: {$feeFormatted}.");
+    }
+
+    /**
+     * Correct an incorrectly recognized license plate number with audit logging.
+     */
+    public function correctPlate(Request $request, $id)
+    {
+        $request->validate([
+            'plate_number' => ['required', 'string', 'min:3', 'max:20', 'regex:/^[A-Z0-9\s\-]+$/i'],
+            'correction_reason' => ['nullable', 'string', 'max:255'],
+        ], [
+            'plate_number.required' => 'License plate number is required.',
+            'plate_number.regex' => 'License plate number must only contain letters, numbers, hyphens, and spaces.',
+        ]);
+
+        $entry = PlateEntry::findOrFail($id);
+        $oldPlate = $entry->plate_number;
+        $newPlate = strtoupper(trim($request->input('plate_number')));
+        $reason = $request->input('correction_reason') ?: 'Manual correction of OCR read';
+
+        if ($oldPlate === $newPlate) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['success' => true, 'message' => 'No changes made. Plate number is identical.', 'plate' => $newPlate]);
+            }
+            return redirect()->back()->with('info', 'No changes made. Plate number is identical.');
+        }
+
+        DB::beginTransaction();
+        try {
+            $user = Auth::user();
+
+            $entry->update([
+                'plate_number' => $newPlate,
+                'is_manually_corrected' => true,
+                'corrected_by' => $user?->id,
+                'corrected_at' => now(),
+                'remarks' => trim(($entry->remarks ?? '') . " | Corrected: '{$oldPlate}' -> '{$newPlate}' ({$reason})"),
+            ]);
+
+            PlateEntryAudit::create([
+                'plate_entry_id' => $entry->id,
+                'user_id' => $user?->id,
+                'user_name' => $user?->name ?? 'Staff',
+                'action' => 'CORRECT_PLATE',
+                'field_changed' => 'plate_number',
+                'old_value' => $oldPlate,
+                'new_value' => $newPlate,
+                'reason' => $reason,
+                'ip_address' => $request->ip(),
+                'created_at' => now(),
+            ]);
+
+            DB::commit();
+
+            $msg = "Plate number successfully updated from '{$oldPlate}' to '{$newPlate}'.";
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $msg,
+                    'old_plate' => $oldPlate,
+                    'new_plate' => $newPlate,
+                ]);
+            }
+
+            return redirect()->back()->with('success', $msg);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'error' => 'Failed to correct plate: ' . $e->getMessage()], 500);
+            }
+            return redirect()->back()->with('error', 'Failed to correct plate: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -899,6 +1024,29 @@ class PlateOcrController extends Controller
                     ]);
                 }
 
+                // Duplicate active parking session check
+                $cleanRead = strtoupper(preg_replace('/[^A-Z0-9]/', '', $plateNumber));
+                if ($cleanRead !== 'UNKNOWN') {
+                    $existingActive = PlateEntry::where('status', 'entered')
+                        ->get()
+                        ->first(function ($item) use ($cleanRead) {
+                            return strtoupper(preg_replace('/[^A-Z0-9]/', '', $item->plate_number)) === $cleanRead;
+                        });
+
+                    if ($existingActive && !$request->boolean('allow_duplicate')) {
+                        if (file_exists($tempPath)) { unlink($tempPath); }
+                        $enteredAt = $existingActive->entry_time ? $existingActive->entry_time->format('M d, Y • h:i A') : 'earlier';
+                        return response()->json([
+                            "success" => false,
+                            "duplicate_active" => true,
+                            "plate" => $plateNumber,
+                            "existing_id" => $existingActive->id,
+                            "entry_time" => $enteredAt,
+                            "message" => "Vehicle {$plateNumber} is already currently parked inside facility (Entered {$enteredAt}). Duplicate entry prevented.",
+                        ]);
+                    }
+                }
+
                 // Save image permanently
                 $baseName = time() . "_auto_entry_" . uniqid();
                 $filename = $baseName . ".jpg";
@@ -1033,28 +1181,22 @@ class PlateOcrController extends Controller
                     copy($tempPath, storage_path("app/public/" . $croppedPublicPath));
                 }
 
+                $activeRate = ParkingRate::getActiveRate();
                 $entryTime = null;
                 $durationMinutes = 0;
-                $totalFeeAmount = 5.00;
+                $totalFeeAmount = (float)$activeRate->base_rate;
+                $isFreeGrace = false;
                 $formattedDuration = "N/A";
 
                 if ($entry) {
                     $entryTime = $entry->entry_time;
-                    $durationMinutes = $entryTime->diffInMinutes($timestamp);
+                    $durationMinutes = $entryTime ? $entryTime->diffInMinutes($timestamp) : 0;
 
-                    // Calculate parking fee
-                    $hours = max(1, (int)ceil($durationMinutes / 60));
-                    if ($hours <= 3) {
-                        $totalFeeAmount = 5.00;
-                    } else {
-                        $totalFeeAmount = 5.00 + (($hours - 3) * 2.00);
-                    }
-
-                    // Format duration
-                    $dh = intdiv($durationMinutes, 60);
-                    $dm = $durationMinutes % 60;
-                    $formattedDuration = $dh > 0 ? "{$dh}h {$dm}m" : "{$dm}m";
-
+                    // Calculate parking fee with mandatory 15-minute free grace period
+                    $feeBreakdown = $activeRate->calculateFee($durationMinutes, $entry->vehicle_type ?? 'car');
+                    $totalFeeAmount = $feeBreakdown['fee'];
+                    $isFreeGrace = $feeBreakdown['is_free'];
+                    $formattedDuration = $feeBreakdown['formatted_duration'];
                     $tierLabel = $matchResult ? $matchResult['tier'] : 'exact';
 
                     // Close session
@@ -1066,11 +1208,19 @@ class PlateOcrController extends Controller
                         "gate_exit" => $gateNumber,
                         "duration_minutes" => $durationMinutes,
                         "parking_fee" => $totalFeeAmount,
-                        "payment_status" => "unpaid",
-                        "remarks" => trim(($entry->remarks ?? "") . " | Auto-exit [{$cameraId}]: YOLOv8 & " . ucfirst($ocrEngine) . " (Matched: {$tierLabel})"),
+                        "is_free_grace" => $isFreeGrace,
+                        "applied_rate_snapshot" => $feeBreakdown['snapshot'],
+                        "rate_id" => $activeRate->id,
+                        "payment_status" => $isFreeGrace ? "waived" : "unpaid",
+                        "remarks" => trim(($entry->remarks ?? "") . " | Auto-exit [{$cameraId}]: YOLOv8 & " . ucfirst($ocrEngine) . " (Matched: {$tierLabel}) — " . $feeBreakdown['rule_applied']),
                     ]);
                 } else {
-                    // No matching entry — log as exit-only
+                    // No matching entry — log as exceptional exit-only detection
+                    $totalFeeAmount = (float)$activeRate->base_rate;
+                    $isFreeGrace = false;
+                    $durationMinutes = 0;
+                    $formattedDuration = "0m (Missing Entry)";
+
                     $entry = PlateEntry::create([
                         "session_id" => ParkingSession::getActive()->id,
                         "plate_number" => $plateNumber,
@@ -1083,13 +1233,19 @@ class PlateOcrController extends Controller
                         "gate_exit" => $gateNumber,
                         "duration_minutes" => 0,
                         "parking_fee" => $totalFeeAmount,
+                        "is_free_grace" => false,
+                        "applied_rate_snapshot" => [
+                            'note' => 'Exceptional: Exit without entry record',
+                            'base_rate' => $totalFeeAmount,
+                        ],
+                        "rate_id" => $activeRate->id,
                         "payment_status" => "unpaid",
                         "status" => "exited",
-                        "remarks" => "Auto-exit only [{$cameraId}]: YOLOv8 & " . ucfirst($ocrEngine),
+                        "remarks" => "Auto-exit only [{$cameraId}]: No active entry record. Assessed base fee ₱" . number_format($totalFeeAmount, 2),
                     ]);
                 }
 
-                $formattedFee = "₱" . number_format($totalFeeAmount, 2);
+                $formattedFee = $isFreeGrace ? "₱0.00 (FREE — 15m Grace)" : "₱" . number_format($totalFeeAmount, 2);
 
                 // Generate payment QR
                 $paymentPayload = json_encode([

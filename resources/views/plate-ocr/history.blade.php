@@ -363,6 +363,7 @@
                     <th>Vehicle Plate</th>
                     <th>Entry Timestamp</th>
                     <th>Exit Timestamp</th>
+                    <th>Duration & Tariff</th>
                     <th>Gate Status</th>
                     <th>Actions</th>
                 </tr>
@@ -395,13 +396,20 @@
                                 @else
                                     <div class="plate-thumbnail-container" title="Plate: {{ $entry->plate_number }}">
                                         <div class="plate-graphic-fallback">
-                                            <span class="plate-sub-text">AUTOTRACE</span>
+                                            <span class="plate-sub-text">SABINO</span>
                                             <span class="plate-main-text">{{ $entry->plate_number }}</span>
                                         </div>
                                     </div>
                                 @endif
                                 
-                                <span class="plate-badge" style="margin: 0; font-family: 'Courier New', monospace; font-weight: 800; letter-spacing: 1px;">{{ $entry->plate_number }}</span>
+                                <div>
+                                    <span class="plate-badge" style="margin: 0; font-family: 'Courier New', monospace; font-weight: 800; letter-spacing: 1px;">{{ $entry->plate_number }}</span>
+                                    @if($entry->isLowConfidence())
+                                        <span title="Low OCR confidence (<70%) - staff verification recommended" style="background: #FEF3C7; color: #D97706; font-size: 0.65rem; font-weight: 800; padding: 2px 5px; border-radius: 4px; margin-left: 4px;">
+                                            <i class="ri-alert-line"></i> CHECK
+                                        </span>
+                                    @endif
+                                </div>
                             </div>
                         </td>
                         <td>
@@ -421,7 +429,28 @@
                                     <i class="ri-time-line"></i> {{ optional($entry->exit_time)->format('h:i A') }}
                                 </div>
                             @else
-                                <span style="font-size: 0.8125rem; color: var(--text-tertiary);">Still Parked</span>
+                                <span style="font-size: 0.8125rem; color: #2563EB; font-weight: 600;">Still Parked</span>
+                            @endif
+                        </td>
+                        <td>
+                            @if($entry->duration_minutes !== null)
+                                @php
+                                    $dm = (int)$entry->duration_minutes;
+                                    $dh = intdiv($dm, 60);
+                                    $drem = $dm % 60;
+                                    $stay = $dh > 0 ? "{$dh}h {$drem}m" : "{$dm}m";
+                                    $isGrace = $entry->isFreeGrace();
+                                @endphp
+                                <div style="font-weight: 600;">{{ $stay }}</div>
+                                @if($isGrace)
+                                    <span style="display: inline-flex; align-items: center; gap: 3px; font-size: 0.7rem; font-weight: 800; background: #D1FAE5; color: #065F46; padding: 2px 6px; border-radius: 4px; border: 1px solid #A7F3D0;">
+                                        <i class="ri-gift-line"></i> FREE (≤15m)
+                                    </span>
+                                @else
+                                    <div style="font-size: 0.75rem; color: #64748B;">₱{{ number_format((float)($entry->parking_fee ?? 0), 2) }}</div>
+                                @endif
+                            @else
+                                <span style="font-size: 0.8125rem; color: var(--text-tertiary);">In Progress</span>
                             @endif
                         </td>
                         <td>
@@ -439,6 +468,9 @@
                                         <button type="submit" class="action-btn exit-btn" title="Manual Exit Gate Checkout"><i class="ri-logout-box-r-line"></i></button>
                                     </form>
                                 @endif
+                                <button type="button" class="action-btn" title="Correct Plate Number" onclick="openCorrectPlateModal('{{ $entry->id }}', '{{ $entry->plate_number }}', '{{ $displayImage ?? '' }}')">
+                                    <i class="ri-edit-line"></i>
+                                </button>
                                 <a href="{{ route('plate-ocr.download', ['plate' => $entry->plate_number, 'timestamp' => optional($entry->entry_time)->format('Y-m-d H:i:s')]) }}"
                                    class="action-btn"
                                    title="Download Gate Pass"><i class="ri-download-line"></i></a>
@@ -448,7 +480,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5">
+                        <td colspan="6">
                             <div style="text-align: center; padding: 3rem 1.5rem; color: var(--text-tertiary);">
                                 <i class="ri-history-line" style="font-size: 3rem; display: block; margin-bottom: 0.5rem; opacity: 0.4;"></i>
                                 <h3>No Parking Log Records Found</h3>
@@ -564,6 +596,9 @@ function printTicket(url) {
     document.body.appendChild(frame);
 }
 </script>
+
+@include('partials.correct-plate-modal')
+@include('partials.change-fee-modal')
 @endsection
 
 @section('additional-scripts')

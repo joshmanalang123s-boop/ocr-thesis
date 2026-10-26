@@ -5,602 +5,654 @@
 
 @section('additional-styles')
 <style>
-    .dashboard-hero {
-        background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
-        border-radius: 16px;
-        padding: 1.75rem 2rem;
-        color: white;
-        margin-bottom: 2rem;
-        box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
+    /* ══════════════════════════════════════════════════════════════
+       MINIMALIST BLACK & WHITE DASHBOARD THEME (SABINO)
+       ══════════════════════════════════════════════════════════════ */
+    :root {
+        --dash-bg: #FFFFFF;
+        --card-bg: #FFFFFF;
+        --card-border: #E5E7EB;
+        --card-border-hover: #D1D5DB;
+        --text-head: #111827;
+        --text-body: #4B5563;
+        --text-muted: #9CA3AF;
+        --primary-black: #111827;
+        --status-green: #10B981;
+        --status-red: #EF4444;
+        --card-radius: 8px;
+    }
+
+    /* ─── Minimalist Action Toolbar ─────────────────────────────── */
+    .dashboard-action-toolbar {
+        background: #FFFFFF;
+        border: 1px solid var(--card-border);
+        border-radius: var(--card-radius);
+        padding: 0.75rem 1.25rem;
+        margin-bottom: 1.25rem;
         display: flex;
         align-items: center;
         justify-content: space-between;
         flex-wrap: wrap;
-        gap: 1.5rem;
-        position: relative;
-        overflow: hidden;
+        gap: 0.75rem;
     }
 
-    .dashboard-hero::before {
-        content: '';
-        position: absolute;
-        right: -50px;
-        top: -50px;
-        width: 250px;
-        height: 250px;
-        background: radial-gradient(circle, rgba(37, 99, 235, 0.18) 0%, rgba(0, 0, 0, 0) 70%);
-        pointer-events: none;
-    }
-
-    .hero-content h1 {
-        font-size: 1.65rem;
-        font-weight: 800;
-        letter-spacing: -0.02em;
-        margin-bottom: 0.35rem;
+    .toolbar-left {
         display: flex;
         align-items: center;
-        gap: 0.625rem;
-    }
-
-    .hero-content p {
-        color: #94A3B8;
-        font-size: 0.9rem;
-    }
-
-    .hero-gates-status {
-        display: flex;
-        gap: 1rem;
+        gap: 0.65rem;
         flex-wrap: wrap;
     }
 
-    .gate-pill {
+    .toolbar-right {
         display: flex;
         align-items: center;
-        gap: 0.625rem;
-        padding: 0.625rem 1.125rem;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        border-radius: 10px;
-        text-decoration: none;
-        color: white;
-        transition: all 0.2s ease;
-        backdrop-filter: blur(4px);
+        gap: 0.5rem;
+        flex-wrap: wrap;
     }
 
-    .gate-pill:hover {
-        background: rgba(255, 255, 255, 0.15);
-        transform: translateY(-2px);
-    }
-
-    .gate-pill.entry-gate {
-        border-left: 4px solid #10B981;
-    }
-
-    .gate-pill.exit-gate {
-        border-left: 4px solid #F97316;
-    }
-
-    .gate-pill-title {
+    .session-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.3rem 0.65rem;
+        background: #F9FAFB;
+        border: 1px solid var(--card-border);
+        border-radius: 6px;
         font-size: 0.75rem;
-        color: #94A3B8;
         font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
+        color: #111827;
     }
 
-    .gate-pill-name {
-        font-size: 0.875rem;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        gap: 0.35rem;
+    .status-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #10B981;
+        display: inline-block;
+        flex-shrink: 0;
     }
 
-    /* Capacity & Stats Bar */
-    .capacity-overview {
-        background: white;
-        border: 1px solid var(--border-color);
-        border-radius: 14px;
-        padding: 1.5rem;
-        margin-bottom: 2rem;
-        box-shadow: var(--card-shadow);
-    }
-
-    .capacity-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1rem;
-    }
-
-    .capacity-header h3 {
-        font-size: 1rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .capacity-metrics {
-        display: flex;
-        align-items: baseline;
-        gap: 0.5rem;
-        font-weight: 800;
-    }
-
-    .capacity-occupied {
-        font-size: 1.75rem;
-        color: #2563EB;
-    }
-
-    .capacity-total {
-        font-size: 1.125rem;
-        color: var(--text-tertiary);
-    }
-
-    .capacity-bar-bg {
-        height: 12px;
-        background: #F1F5F9;
-        border-radius: 6px;
-        overflow: hidden;
-        margin-bottom: 0.75rem;
-    }
-
-    .capacity-bar-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #10B981 0%, #2563EB 70%, #F97316 100%);
-        border-radius: 6px;
-        transition: width 0.5s ease;
-    }
-
-    .capacity-footer {
-        display: flex;
-        justify-content: space-between;
-        font-size: 0.8125rem;
-        color: var(--text-secondary);
-        font-weight: 500;
-    }
-
-    /* Stats Grid */
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-        gap: 1.25rem;
-        margin-bottom: 2rem;
-    }
-
-    .stat-card {
-        background: var(--bg-secondary);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 1.25rem;
-        box-shadow: var(--card-shadow);
-        transition: all 0.2s ease;
-    }
-
-    .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--card-shadow-hover);
-    }
-
-    .stat-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 0.75rem;
-    }
-
-    .stat-icon {
-        width: 42px;
-        height: 42px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.35rem;
-    }
-
-    .stat-icon.primary { background: #EFF6FF; color: #2563EB; }
-    .stat-icon.success { background: #ECFDF5; color: #10B981; }
-    .stat-icon.warning { background: #FEF3C7; color: #D97706; }
-    .stat-icon.info { background: #E0F2FE; color: #0284C7; }
-    .stat-icon.danger { background: #FEF2F2; color: #EF4444; }
-    .stat-icon.orange { background: #FFF7ED; color: #F97316; }
-
-    .stat-title {
-        font-size: 0.75rem;
-        font-weight: 700;
-        color: var(--text-tertiary);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: 0.25rem;
-    }
-
-    .stat-value {
-        font-size: 1.75rem;
-        font-weight: 800;
-        color: var(--text-primary);
-        line-height: 1.1;
-    }
-
-    .stat-footer {
-        display: flex;
-        align-items: center;
-        gap: 0.35rem;
-        margin-top: 0.5rem;
-        font-size: 0.75rem;
-        color: var(--text-secondary);
-        font-weight: 500;
-    }
-
-    /* Main Grid */
-    .content-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 1.75rem;
-    }
-
-    @media (min-width: 1200px) {
-        .content-grid {
-            grid-template-columns: 2.3fr 1fr;
-        }
-    }
-
-    /* Table Card */
-    .table-card {
-        background: var(--bg-secondary);
-        border: 1px solid var(--border-color);
-        border-radius: 14px;
-        box-shadow: var(--card-shadow);
-        overflow: hidden;
-    }
-
-    .table-card-header {
-        padding: 1.25rem 1.5rem;
-        border-bottom: 1px solid var(--border-color);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 1rem;
-        background: #FAFAFA;
-    }
-
-    .table-card-title h2 {
-        font-size: 1.125rem;
-        font-weight: 800;
-        color: var(--text-primary);
-        letter-spacing: -0.01em;
-    }
-
-    .table-card-title p {
-        font-size: 0.8125rem;
-        color: var(--text-secondary);
-    }
-
-    .filter-bar {
-        padding: 0.85rem 1.5rem;
-        background: var(--bg-primary);
-        border-bottom: 1px solid var(--border-color);
-    }
-
-    .filter-bar input,
-    .filter-bar select {
-        padding: 0.5rem 0.85rem;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        font-size: 0.875rem;
-        background: var(--bg-secondary);
-        color: var(--text-primary);
-    }
-
-    .filter-bar input:focus,
-    .filter-bar select:focus {
-        outline: none;
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-    }
-
-    .data-table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-    .data-table thead {
-        background: #F8FAFC;
-        border-bottom: 1px solid var(--border-color);
-    }
-
-    .data-table th {
-        padding: 0.85rem 1.25rem;
-        text-align: left;
-        font-size: 0.75rem;
-        font-weight: 700;
-        color: var(--text-tertiary);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-
-    .data-table tbody tr {
-        border-bottom: 1px solid var(--border-color);
-        transition: background 0.15s ease;
-    }
-
-    .data-table tbody tr:hover {
-        background: #F1F5F9;
-    }
-
-    .data-table td {
-        padding: 0.9rem 1.25rem;
-        font-size: 0.875rem;
-        color: var(--text-primary);
-        vertical-align: middle;
-    }
-
-    .status-badge {
+    .grace-rule-pill {
         display: inline-flex;
         align-items: center;
         gap: 0.35rem;
         padding: 0.3rem 0.65rem;
+        background: #F9FAFB;
+        border: 1px solid var(--card-border);
         border-radius: 6px;
-        font-size: 0.78125rem;
-        font-weight: 700;
-        white-space: nowrap;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #111827;
     }
 
-    .status-badge.entered {
-        background: #ECFDF5;
-        color: #047857;
-        border: 1px solid #A7F3D0;
+    .grace-rule-pill i {
+        color: #10B981;
     }
 
-    .status-badge.exited {
-        background: #FFF7ED;
-        color: #C2410C;
-        border: 1px solid #FFD8A8;
-    }
-
-    /* Action Buttons */
-    .action-btns {
-        display: flex;
-        gap: 0.4rem;
+    /* ─── Topbar Action Buttons ─────────────────────────────────── */
+    .btn-topbar {
+        display: inline-flex;
         align-items: center;
-    }
-
-    .action-btn {
-        width: 32px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: 1px solid var(--border-color);
-        background: var(--bg-secondary);
+        gap: 0.45rem;
+        padding: 0.5rem 1rem;
         border-radius: 6px;
+        font-size: 0.8125rem;
+        font-weight: 600;
         cursor: pointer;
         transition: all 0.15s ease;
-        color: var(--text-secondary);
         text-decoration: none;
+        line-height: 1.25;
     }
 
-    .action-btn:hover {
-        background: var(--primary-color);
-        border-color: var(--primary-color);
-        color: white;
+    .btn-topbar.primary-fee {
+        background: #111827;
+        color: #FFFFFF;
+        border: 1px solid #111827;
     }
 
-    .action-btn.exit-btn:hover {
-        background: #F97316;
-        border-color: #F97316;
-        color: white;
+    .btn-topbar.primary-fee:hover {
+        background: #000000;
+        border-color: #000000;
     }
 
-    /* Sidebar Cards */
-    .sidebar-widget {
-        background: var(--bg-secondary);
-        border: 1px solid var(--border-color);
-        border-radius: 14px;
-        padding: 1.25rem;
-        box-shadow: var(--card-shadow);
-        margin-bottom: 1.5rem;
+    .btn-topbar.outline {
+        background: #FFFFFF;
+        color: #111827;
+        border: 1px solid var(--card-border);
     }
 
-    .sidebar-widget-header {
-        font-size: 1rem;
-        font-weight: 800;
-        color: var(--text-primary);
-        margin-bottom: 1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
+    .btn-topbar.outline:hover {
+        background: #F9FAFB;
+        border-color: #D1D5DB;
     }
 
-    .terminal-quick-grid {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
+    .btn-topbar.soft-danger {
+        background: #FFFFFF;
+        color: #EF4444;
+        border: 1px solid #FCA5A5;
     }
 
-    .terminal-quick-card {
-        display: flex;
-        align-items: center;
+    .btn-topbar.soft-danger:hover {
+        background: #FEF2F2;
+    }
+
+    /* ─── Gate 1 & Gate 2 Status Bar (Requirement 3) ─────────────── */
+    .gates-status-row {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
         gap: 1rem;
-        padding: 0.85rem 1rem;
-        border-radius: 10px;
-        text-decoration: none;
-        transition: all 0.2s ease;
-        border: 1px solid var(--border-color);
-        background: #FAFAFA;
+        margin-bottom: 1.25rem;
     }
 
-    .terminal-quick-card:hover {
-        transform: translateX(4px);
-        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    @media (max-width: 768px) {
+        .gates-status-row { grid-template-columns: 1fr; }
     }
 
-    .terminal-quick-card.entry-cam:hover {
-        border-color: #10B981;
-        background: #ECFDF5;
-    }
-
-    .terminal-quick-card.exit-cam:hover {
-        border-color: #F97316;
-        background: #FFF7ED;
-    }
-
-    .terminal-icon-box {
-        width: 38px;
-        height: 38px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.2rem;
-        flex-shrink: 0;
-    }
-
-    .terminal-icon-box.entry { background: #ECFDF5; color: #10B981; }
-    .terminal-icon-box.exit { background: #FFF7ED; color: #F97316; }
-
-    .terminal-details h4 {
-        font-size: 0.875rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin-bottom: 0.1rem;
-    }
-
-    .terminal-details p {
-        font-size: 0.75rem;
-        color: var(--text-secondary);
-    }
-
-    .recent-exits-list {
-        display: flex;
-        flex-direction: column;
-        gap: 0.625rem;
-    }
-
-    .exit-item {
+    .gate-status-card {
+        background: #FFFFFF;
+        border: 1px solid var(--card-border);
+        border-radius: var(--card-radius);
+        padding: 0.95rem 1.25rem;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0.75rem 0.85rem;
-        background: #F8FAFC;
-        border-radius: 8px;
-        border-left: 3px solid #F97316;
+        gap: 1rem;
     }
 
-    .exit-item-plate {
-        font-weight: 800;
-        font-family: 'Courier New', monospace;
-        font-size: 0.85rem;
-        color: var(--text-primary);
+    .gate-card-left {
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
     }
 
-    .exit-item-time {
+    .gate-status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.25rem 0.55rem;
+        background: #F9FAFB;
+        border: 1px solid var(--card-border);
+        border-radius: 4px;
+        font-size: 0.6875rem;
+        font-weight: 700;
+        color: #111827;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .gate-title-wrap h3 {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #111827;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .gate-title-wrap p {
         font-size: 0.75rem;
-        color: var(--text-tertiary);
+        color: #6B7280;
+        margin: 2px 0 0 0;
     }
 
-    .empty-state {
-        padding: 3rem 1.5rem;
-        text-align: center;
+    .btn-gate-quick {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.45rem 0.85rem;
+        border-radius: 6px;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: #111827;
+        background: #FFFFFF;
+        border: 1px solid var(--card-border);
+        text-decoration: none;
+        transition: all 0.15s ease;
+        white-space: nowrap;
     }
 
-    .empty-icon {
-        font-size: 3rem;
-        color: var(--text-tertiary);
-        margin-bottom: 0.75rem;
-        opacity: 0.5;
+    .btn-gate-quick:hover {
+        background: #F9FAFB;
+        border-color: #111827;
     }
 
-    /* Pagination */
-    .pagination {
-        padding: 1rem 1.5rem;
-        border-top: 1px solid var(--border-color);
+    /* ─── Metric Cards Grid (Minimalist Black & White) ──────────── */
+    .kpi-row {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    @media (max-width: 1400px) {
+        .kpi-row { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 900px) {
+        .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 600px) {
+        .kpi-row { grid-template-columns: 1fr; }
+    }
+
+    .kpi-card-clean {
+        background: #FFFFFF;
+        border: 1px solid var(--card-border);
+        border-radius: var(--card-radius);
+        padding: 1.15rem 1.25rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 145px;
+        transition: border-color 0.15s ease;
+    }
+
+    .kpi-card-clean:hover {
+        border-color: var(--card-border-hover);
+    }
+
+    .kpi-card-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+
+    .kpi-label {
+        font-size: 0.6875rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #6B7280;
+    }
+
+    .kpi-icon-pill {
+        width: 30px;
+        height: 30px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        background: #F9FAFB;
+        border: 1px solid var(--card-border);
+        color: #111827;
+    }
+
+    .kpi-main-val {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: #111827;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+        margin-bottom: 0.35rem;
+    }
+
+    .kpi-subtext {
+        font-size: 0.75rem;
+        color: #6B7280;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        flex-wrap: wrap;
+    }
+
+    .kpi-progress-wrap {
+        width: 100%;
+        height: 5px;
+        background: #F3F4F6;
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: 0.4rem;
+    }
+
+    .kpi-progress-bar {
+        height: 100%;
+        background: #111827;
+        border-radius: 3px;
+        transition: width 0.3s ease;
+    }
+
+    /* ─── Main Content Layout (Table + Quick Sidebar) ──────────── */
+    .dashboard-layout {
+        display: grid;
+        grid-template-columns: 1fr 320px;
+        gap: 1.25rem;
+        align-items: start;
+    }
+
+    @media (max-width: 1200px) {
+        .dashboard-layout { grid-template-columns: 1fr; }
+    }
+
+    /* ─── Clean Table Card ──────────────────────────────────────── */
+    .activity-card {
+        background: #FFFFFF;
+        border: 1px solid var(--card-border);
+        border-radius: var(--card-radius);
+        overflow: hidden;
+    }
+
+    .activity-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--card-border);
         display: flex;
         align-items: center;
         justify-content: space-between;
         flex-wrap: wrap;
-        gap: 1rem;
-        background: #FAFAFA;
+        gap: 0.75rem;
+        background: #FFFFFF;
     }
 
-    /* End Session and Controls */
-    .btn-end-session {
-        display: inline-flex;
+    .activity-header-title h2 {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #111827;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+    }
+
+    .activity-header-title p {
+        font-size: 0.75rem;
+        color: #6B7280;
+        margin: 2px 0 0 0;
+    }
+
+    /* Clean Filter Bar */
+    .table-filter-bar {
+        padding: 0.75rem 1.25rem;
+        background: #F9FAFB;
+        border-bottom: 1px solid var(--card-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.65rem;
+        flex-wrap: wrap;
+    }
+
+    .filter-form-clean {
+        display: flex;
         align-items: center;
         gap: 0.5rem;
-        padding: 0.65rem 1.25rem;
-        background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
-        color: white;
-        border: 1px solid rgba(255, 255, 255, 0.25);
-        border-radius: 10px;
+        flex: 1;
+        flex-wrap: wrap;
+    }
+
+    .input-search-clean {
+        flex: 1;
+        min-width: 200px;
+        padding: 0.45rem 0.75rem;
+        border: 1px solid var(--card-border);
+        border-radius: 6px;
+        font-size: 0.8125rem;
+        background: #FFFFFF;
+        color: #111827;
+    }
+
+    .input-search-clean:focus {
+        outline: none;
+        border-color: #111827;
+    }
+
+    .select-clean {
+        padding: 0.45rem 0.75rem;
+        border: 1px solid var(--card-border);
+        border-radius: 6px;
+        font-size: 0.8125rem;
+        background: #FFFFFF;
+        color: #111827;
+        cursor: pointer;
+    }
+
+    .btn-filter-clean {
+        padding: 0.45rem 0.85rem;
+        border-radius: 6px;
+        background: #111827;
+        color: #FFFFFF;
+        font-weight: 600;
+        font-size: 0.8125rem;
+        border: 1px solid #111827;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        transition: background 0.15s ease;
+    }
+
+    .btn-filter-clean:hover {
+        background: #000000;
+    }
+
+    /* Clean Modern Table */
+    .clean-table-wrap {
+        overflow-x: auto;
+    }
+
+    .clean-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.8125rem;
+    }
+
+    .clean-table th {
+        background: #F9FAFB;
+        padding: 0.65rem 1rem;
+        text-align: left;
+        font-size: 0.6875rem;
+        font-weight: 700;
+        color: #6B7280;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--card-border);
+        white-space: nowrap;
+    }
+
+    .clean-table td {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--card-border);
+        color: #111827;
+        vertical-align: middle;
+    }
+
+    .clean-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .clean-table tr:hover td {
+        background: #F9FAFB;
+    }
+
+    /* License Plate Chip */
+    .plate-chip {
+        display: inline-flex;
+        align-items: center;
+        background: #FFFFFF;
+        border: 1px solid #111827;
+        border-radius: 4px;
+        padding: 0.2rem 0.55rem;
+    }
+
+    .plate-chip-text {
+        font-family: ui-monospace, SFMono-Regular, monospace;
         font-weight: 700;
         font-size: 0.875rem;
-        cursor: pointer;
-        box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
-        transition: all 0.2s ease;
-        text-decoration: none;
-    }
-    .btn-end-session:hover {
-        background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(220, 38, 38, 0.45);
-    }
-    .btn-session-history {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        padding: 0.65rem 1.1rem;
-        background: rgba(255, 255, 255, 0.12);
-        color: white;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 10px;
-        font-weight: 600;
-        font-size: 0.875rem;
-        cursor: pointer;
-        backdrop-filter: blur(4px);
-        transition: all 0.2s ease;
-    }
-    .btn-session-history:hover {
-        background: rgba(255, 255, 255, 0.22);
-        transform: translateY(-2px);
-    }
-    .session-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.55rem 1rem;
-        background: rgba(16, 185, 129, 0.15);
-        border: 1px solid rgba(16, 185, 129, 0.3);
-        border-radius: 10px;
-        color: #34D399;
-        font-size: 0.85rem;
-        font-weight: 600;
-    }
-    .live-dot {
-        width: 8px;
-        height: 8px;
-        background: #10B981;
-        border-radius: 50%;
-        box-shadow: 0 0 8px #10B981;
-    }
-    .pulse {
-        animation: pulseDotAnim 2s infinite;
-    }
-    @keyframes pulseDotAnim {
-        0% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.4; transform: scale(1.25); }
-        100% { opacity: 1; transform: scale(1); }
+        letter-spacing: 0.06em;
+        color: #111827;
     }
 
-    /* Modal Overlays & Dialogs */
+    /* Badges */
+    .badge-soft-green {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.15rem 0.45rem;
+        border-radius: 4px;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        background: #F9FAFB;
+        color: #111827;
+        border: 1px solid var(--card-border);
+        white-space: nowrap;
+    }
+
+    .badge-soft-slate {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.15rem 0.45rem;
+        border-radius: 4px;
+        font-size: 0.6875rem;
+        font-weight: 500;
+        background: #F9FAFB;
+        color: #4B5563;
+        border: 1px solid var(--card-border);
+        white-space: nowrap;
+    }
+
+    .badge-soft-amber {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.15rem 0.45rem;
+        border-radius: 4px;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        background: #FFFBEB;
+        color: #B45309;
+        border: 1px solid #FDE68A;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    /* Table Action Icon Buttons */
+    .table-actions-group {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .btn-action-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 4px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #FFFFFF;
+        border: 1px solid var(--card-border);
+        color: #374151;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        text-decoration: none;
+        font-size: 0.875rem;
+    }
+
+    .btn-action-icon:hover {
+        background: #F3F4F6;
+        color: #111827;
+        border-color: #9CA3AF;
+    }
+
+    .btn-action-icon.exit-action:hover {
+        background: #FEF2F2;
+        border-color: #FCA5A5;
+        color: #EF4444;
+    }
+
+    /* ─── Right Sidebar Widgets ─────────────────────────────────── */
+    .sidebar-col {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+    }
+
+    .widget-box {
+        background: #FFFFFF;
+        border: 1px solid var(--card-border);
+        border-radius: var(--card-radius);
+        overflow: hidden;
+    }
+
+    .widget-box-header {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--card-border);
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #111827;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .terminal-link-card {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        text-decoration: none;
+        color: #111827;
+        border-bottom: 1px solid var(--card-border);
+        transition: background 0.15s ease;
+    }
+
+    .terminal-link-card:last-child {
+        border-bottom: none;
+    }
+
+    .terminal-link-card:hover {
+        background: #F9FAFB;
+    }
+
+    .terminal-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        background: #F9FAFB;
+        border: 1px solid var(--card-border);
+        color: #111827;
+        flex-shrink: 0;
+    }
+
+    .terminal-info h4 {
+        font-size: 0.8125rem;
+        font-weight: 600;
+        margin: 0;
+        color: #111827;
+    }
+
+    .terminal-info p {
+        font-size: 0.6875rem;
+        color: #6B7280;
+        margin: 1px 0 0 0;
+    }
+
+    /* Recent Exits Stream */
+    .recent-exit-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.65rem 1rem;
+        border-bottom: 1px solid #F3F4F6;
+        font-size: 0.8125rem;
+    }
+
+    .recent-exit-row:last-child {
+        border-bottom: none;
+    }
+
+    /* ─── Modal Dialogs ─────────────────────────────────────────── */
     .session-modal-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(15, 23, 42, 0.75);
-        backdrop-filter: blur(6px);
+        background: rgba(0, 0, 0, 0.5);
         z-index: 10000;
         display: flex;
         align-items: center;
@@ -608,408 +660,459 @@
         padding: 1.25rem;
         opacity: 0;
         visibility: hidden;
-        transition: all 0.25s ease;
+        transition: all 0.2s ease;
     }
+
     .session-modal-overlay.active {
         opacity: 1;
         visibility: visible;
     }
+
     .session-modal-dialog {
-        background: white;
-        border-radius: 20px;
-        max-width: 650px;
+        background: #FFFFFF;
+        border-radius: 8px;
+        max-width: 580px;
         width: 100%;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
         overflow: hidden;
-        transform: scale(0.95) translateY(10px);
-        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-        border: 1px solid var(--border-color);
+        border: 1px solid var(--card-border);
     }
-    .session-modal-overlay.active .session-modal-dialog {
-        transform: scale(1) translateY(0);
-    }
+
     .session-modal-header {
-        padding: 1.5rem 1.75rem;
-        border-bottom: 1px solid var(--border-color);
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--card-border);
         display: flex;
         align-items: center;
         justify-content: space-between;
-        background: #F8FAFC;
+        background: #FFFFFF;
     }
+
     .session-modal-title {
-        font-size: 1.25rem;
-        font-weight: 800;
-        color: var(--text-primary);
+        font-size: 1rem;
+        font-weight: 700;
+        color: #111827;
         display: flex;
         align-items: center;
-        gap: 0.6rem;
+        gap: 0.4rem;
     }
+
     .session-modal-close {
         background: none;
         border: none;
-        font-size: 1.5rem;
-        color: var(--text-tertiary);
+        font-size: 1.25rem;
+        color: #6B7280;
         cursor: pointer;
-        padding: 4px;
         line-height: 1;
-        border-radius: 6px;
-        transition: color 0.15s ease;
+        padding: 2px;
     }
+
     .session-modal-close:hover {
-        color: var(--text-primary);
+        color: #111827;
     }
+
     .session-modal-body {
-        padding: 1.75rem;
+        padding: 1.25rem;
     }
+
     .session-modal-footer {
-        padding: 1.25rem 1.75rem;
-        border-top: 1px solid var(--border-color);
+        padding: 0.85rem 1.25rem;
+        border-top: 1px solid var(--card-border);
         display: flex;
         align-items: center;
         justify-content: flex-end;
-        gap: 0.75rem;
-        background: #F8FAFC;
+        gap: 0.5rem;
+        background: #F9FAFB;
     }
 
-    /* Summary Cards Grid */
-    .summary-cards-grid {
+    /* Modal Summary Cards Grid */
+    .summary-grid-4 {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
-        margin-bottom: 1.5rem;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
     }
-    @media (max-width: 560px) {
-        .summary-cards-grid {
-            grid-template-columns: 1fr;
-        }
+
+    .summary-tile {
+        padding: 0.85rem 1rem;
+        border-radius: 6px;
+        border: 1px solid var(--card-border);
+        background: #F9FAFB;
     }
-    .summary-card {
-        padding: 1.25rem;
-        border-radius: 14px;
-        border: 1px solid transparent;
-        transition: transform 0.15s ease;
-    }
-    .summary-card.revenue {
-        background: linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%);
-        border-color: #DDD6FE;
-    }
-    .summary-card.vehicles {
-        background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
-        border-color: #BFDBFE;
-    }
-    .summary-card.parked {
-        background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
-        border-color: #A7F3D0;
-    }
-    .summary-card.completed {
-        background: linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%);
-        border-color: #FED7AA;
-    }
-    .summary-card-label {
-        font-size: 0.75rem;
-        font-weight: 800;
-        letter-spacing: 0.05em;
+
+    .summary-tile-label {
+        font-size: 0.6875rem;
+        font-weight: 700;
+        color: #6B7280;
         text-transform: uppercase;
-        margin-bottom: 0.4rem;
-        display: flex;
-        align-items: center;
-        gap: 0.45rem;
+        margin-bottom: 0.2rem;
     }
-    .summary-card.revenue .summary-card-label { color: #6D28D9; }
-    .summary-card.vehicles .summary-card-label { color: #1D4ED8; }
-    .summary-card.parked .summary-card-label { color: #047857; }
-    .summary-card.completed .summary-card-label { color: #C2410C; }
 
-    .summary-card-val {
-        font-size: 1.85rem;
-        font-weight: 900;
-        line-height: 1.1;
-        letter-spacing: -0.02em;
-    }
-    .summary-card.revenue .summary-card-val { color: #5B21B6; }
-    .summary-card.vehicles .summary-card-val { color: #1E40AF; }
-    .summary-card.parked .summary-card-val { color: #065F46; }
-    .summary-card.completed .summary-card-val { color: #9A3412; }
-
-    .summary-meta-strip {
-        background: #F8FAFC;
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 1rem 1.25rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.65rem;
-        font-size: 0.85rem;
-    }
-    .summary-meta-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        color: var(--text-secondary);
-    }
-    .summary-meta-row strong {
-        color: var(--text-primary);
+    .summary-tile-val {
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: #111827;
     }
 </style>
 @endsection
 
 @section('content')
-<!-- Hero Header -->
-<div class="dashboard-hero">
-    <div class="hero-content">
-        <h1><i class="ri-parking-box-line" style="color: #0EA5E9;"></i> Parking Facility Control Center</h1>
-        <p>Real-time vehicle detection, automated gate entry & exit management</p>
-    </div>
-    <div class="hero-gates-status">
-        <div class="session-pill">
-            <span class="live-dot pulse"></span>
-            <span id="sessionPillText">Session: <strong>{{ $activeSession->session_code ?? 'ACTIVE' }}</strong></span>
-        </div>
-        <button type="button" class="btn-session-history" onclick="openSessionHistoryModal()" title="View past session records">
-            <i class="ri-archive-line"></i>
-            <span>Session History</span>
-        </button>
-        <button type="button" class="btn-end-session" onclick="promptEndSession()" id="btnEndSession">
-            <i class="ri-stop-circle-fill"></i>
-            <span>End Session</span>
-        </button>
-        <a href="{{ route('plate-ocr.index') }}" class="gate-pill entry-gate">
-            <div>
-                <div class="gate-pill-title">Gate 1 • Entry</div>
-                <div class="gate-pill-name"><i class="ri-login-box-line" style="color: #10B981;"></i> Camera Live</div>
-            </div>
-        </a>
-        <a href="{{ route('plate-ocr.exit-scan') }}" class="gate-pill exit-gate">
-            <div>
-                <div class="gate-pill-title">Gate 2 • Exit</div>
-                <div class="gate-pill-name"><i class="ri-logout-box-r-line" style="color: #F97316;"></i> Camera Live</div>
-            </div>
-        </a>
-    </div>
-</div>
 
 @php
-    $maxCapacity = 50; // Total parking slots standard
+    $maxCapacity = 50;
     $occupiedCount = $currentlyInside ?? 0;
     $availableSlots = max(0, $maxCapacity - $occupiedCount);
     $occupancyPercent = min(100, round(($occupiedCount / $maxCapacity) * 100));
 @endphp
 
-<!-- Capacity Overview Card -->
-<div class="capacity-overview">
-    <div class="capacity-header">
-        <h3><i class="ri-dashboard-2-line" style="color: #2563EB;"></i> Live Parking Capacity</h3>
-        <div class="capacity-metrics">
-            <span class="capacity-occupied" id="capacityOccupiedText">{{ $occupiedCount }}</span>
-            <span class="capacity-total">/ {{ $maxCapacity }} Slots Occupied</span>
+<!-- ═══════════════════════════════════════════════════════════════
+     MINIMALIST ACTION TOOLBAR
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="dashboard-action-toolbar">
+    <div class="toolbar-left">
+        <div class="session-indicator">
+            <span class="status-dot"></span>
+            <span id="sessionPillText">Session: <strong>{{ $activeSession->session_code ?? 'ACTIVE' }}</strong></span>
+        </div>
+        <div class="grace-rule-pill">
+            <i class="ri-shield-check-line"></i>
+            <span>15-Min Free Grace Active (₱0.00)</span>
         </div>
     </div>
-    <div class="capacity-bar-bg">
-        <div class="capacity-bar-fill" id="capacityBarFill" style="width: {{ $occupancyPercent }}%;"></div>
-    </div>
-    <div class="capacity-footer">
-        <span><strong style="color: #10B981;" id="capacityAvailableText">{{ $availableSlots }} Slots Available</strong></span>
-        <span>Occupancy Rate: <strong id="capacityPercentText">{{ $occupancyPercent }}%</strong></span>
+
+    <div class="toolbar-right">
+        <button type="button" class="btn-topbar primary-fee" onclick="openChangeFeeModal()" id="btnChangeFee" title="Manage facility parking rates and grace rules">
+            <i class="ri-edit-line"></i>
+            <span>Change Parking Fee</span>
+        </button>
+        <button type="button" class="btn-topbar outline" onclick="openSessionHistoryModal()" title="View session archive history">
+            <i class="ri-history-line"></i>
+            <span>Session History</span>
+        </button>
+        <button type="button" class="btn-topbar soft-danger" onclick="promptEndSession()" id="btnEndSession" title="Finalize current active session">
+            <i class="ri-stop-circle-line"></i>
+            <span>End Session</span>
+        </button>
     </div>
 </div>
 
-<!-- Stats Grid -->
-<div class="stats-grid">
-    <!-- Active Session Revenue -->
-    <div class="stat-card">
-        <div class="stat-header">
-            <div class="stat-icon" style="background: #F5F3FF; color: #8B5CF6;"><i class="ri-wallet-3-line"></i></div>
+<!-- ═══════════════════════════════════════════════════════════════
+     CURRENT STATUS OF GATE 1 & GATE 2 + QUICK ACCESS (Req 3)
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="gates-status-row">
+    <!-- Gate 1 (Entry Cam) -->
+    <div class="gate-status-card">
+        <div class="gate-card-left">
+            <div class="gate-status-pill">
+                <span class="status-dot"></span>
+                <span>Operational</span>
+            </div>
+            <div class="gate-title-wrap">
+                <h3><i class="ri-login-box-line"></i> Gate 1 • Entry Camera</h3>
+                <p>Automatic vehicle plate detection & QR gate pass issuance</p>
+            </div>
         </div>
-        <div class="stat-title">Session Revenue</div>
-        <div class="stat-value" id="statSessionRevenue">₱{{ number_format($sessionRevenue ?? 0, 2) }}</div>
-        <div class="stat-footer">
-            <span style="color: #8B5CF6; font-weight:700;"><i class="ri-money-dollar-circle-fill"></i> Inflow</span>
-            <span>Active collected fees</span>
-        </div>
-    </div>
-
-    <!-- Total Vehicles -->
-    <div class="stat-card">
-        <div class="stat-header">
-            <div class="stat-icon primary"><i class="ri-car-line"></i></div>
-        </div>
-        <div class="stat-title">Total Vehicles</div>
-        <div class="stat-value" id="statTotalVehicles">{{ $total ?? 0 }}</div>
-        <div class="stat-footer">
-            <span style="color: #2563EB; font-weight:700;"><i class="ri-login-circle-fill"></i> Active</span>
-            <span>Entered this session</span>
+        <div class="gate-card-right">
+            <a href="{{ route('plate-ocr.index') }}" class="btn-gate-quick" title="Open Gate 1 Live Entry Camera">
+                <i class="ri-camera-line"></i>
+                <span>Open Entry Cam</span>
+            </a>
         </div>
     </div>
 
-    <!-- Currently Parked -->
-    <div class="stat-card">
-        <div class="stat-header">
-            <div class="stat-icon success"><i class="ri-parking-box-line"></i></div>
+    <!-- Gate 2 (Exit Cam) -->
+    <div class="gate-status-card">
+        <div class="gate-card-left">
+            <div class="gate-status-pill">
+                <span class="status-dot"></span>
+                <span>Operational</span>
+            </div>
+            <div class="gate-title-wrap">
+                <h3><i class="ri-logout-box-r-line"></i> Gate 2 • Exit Camera</h3>
+                <p>Exit plate recognition, 15m grace evaluation & fee settlement</p>
+            </div>
         </div>
-        <div class="stat-title">Currently Parked</div>
-        <div class="stat-value" id="statCurrentlyParked">{{ $currentlyInside ?? 0 }}</div>
-        <div class="stat-footer">
-            <span style="color: #10B981; font-weight:700;">On premises</span>
-            <span>Occupying slots</span>
-        </div>
-    </div>
-
-    <!-- Completed Sessions -->
-    <div class="stat-card">
-        <div class="stat-header">
-            <div class="stat-icon orange"><i class="ri-checkbox-circle-line"></i></div>
-        </div>
-        <div class="stat-title">Completed Sessions</div>
-        <div class="stat-value" id="statCompletedSessions">{{ $completedSessions ?? 0 }}</div>
-        <div class="stat-footer">
-            <span style="color: #F97316; font-weight:700;">Completed</span>
-            <span>Entered & exited</span>
-        </div>
-    </div>
-
-    <!-- OCR Accuracy -->
-    <div class="stat-card">
-        <div class="stat-header">
-            <div class="stat-icon warning"><i class="ri-focus-3-line"></i></div>
-        </div>
-        <div class="stat-title">OCR Accuracy</div>
-        <div class="stat-value" id="statOcrAccuracy">{{ $successRate ?? 98.5 }}%</div>
-        <div class="stat-footer">
-            <span style="color: #10B981; font-weight:700;">Optimal</span>
-            <span>AI Recognition Rate</span>
+        <div class="gate-card-right">
+            <a href="{{ route('plate-ocr.exit-scan') }}" class="btn-gate-quick" title="Open Gate 2 Live Exit Camera">
+                <i class="ri-camera-line"></i>
+                <span>Open Exit Cam</span>
+            </a>
         </div>
     </div>
 </div>
 
-<!-- Main Content Grid -->
-<div class="content-grid">
-    <!-- Detection History Table -->
-    <div class="table-card">
-        <div class="table-card-header">
-            <div class="table-card-title">
-                <h2>Real-Time Gate Activity Log</h2>
+<!-- ═══════════════════════════════════════════════════════════════
+     MINIMALIST METRIC CARDS (Requirement 3: Total, Parked, Exited, Revenue)
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="kpi-row">
+    <!-- Card 1: Total Vehicles Recorded -->
+    <div class="kpi-card-clean">
+        <div class="kpi-card-top">
+            <span class="kpi-label">Total Vehicles</span>
+            <div class="kpi-icon-pill"><i class="ri-car-line"></i></div>
+        </div>
+        <div>
+            <div class="kpi-main-val" id="statTotalVehicles">{{ $total ?? 0 }}</div>
+        </div>
+        <div class="kpi-subtext">
+            <span>Recorded in active session</span>
+        </div>
+    </div>
+
+    <!-- Card 2: Vehicles Currently Parked -->
+    <div class="kpi-card-clean">
+        <div class="kpi-card-top">
+            <span class="kpi-label">Currently Parked</span>
+            <div class="kpi-icon-pill"><i class="ri-parking-box-line"></i></div>
+        </div>
+        <div>
+            <div class="kpi-main-val">
+                <span id="statCurrentlyParked">{{ $occupiedCount }}</span>
+                <span style="font-size: 0.875rem; font-weight: 600; color: #6B7280;">/ {{ $maxCapacity }} slots</span>
+                <span id="capacityOccupiedText" style="display: none;">{{ $occupiedCount }}</span>
+            </div>
+            <div class="kpi-progress-wrap">
+                <div class="kpi-progress-bar" id="capacityBarFill" style="width: {{ $occupancyPercent }}%;"></div>
+            </div>
+        </div>
+        <div class="kpi-subtext">
+            <span style="font-weight: 600; color: #111827;" id="capacityAvailableText">{{ $availableSlots }} slots available</span>
+            <span>•</span>
+            <span id="capacityPercentText">{{ $occupancyPercent }}% occupied</span>
+        </div>
+    </div>
+
+    <!-- Card 3: Vehicles That Have Exited -->
+    <div class="kpi-card-clean">
+        <div class="kpi-card-top">
+            <span class="kpi-label">Vehicles Exited</span>
+            <div class="kpi-icon-pill"><i class="ri-logout-box-r-line"></i></div>
+        </div>
+        <div>
+            <div class="kpi-main-val" id="statCompletedSessions">{{ $completedSessions ?? 0 }}</div>
+        </div>
+        <div class="kpi-subtext">
+            <span>Completed parking cycles</span>
+        </div>
+    </div>
+
+    <!-- Card 4: Total Parking Revenue -->
+    <div class="kpi-card-clean">
+        <div class="kpi-card-top">
+            <span class="kpi-label">Total Revenue</span>
+            <div class="kpi-icon-pill"><i class="ri-money-dollar-circle-line"></i></div>
+        </div>
+        <div>
+            <div class="kpi-main-val" id="statSessionRevenue">₱{{ number_format($sessionRevenue ?? 0, 2) }}</div>
+        </div>
+        <div class="kpi-subtext">
+            <span style="font-weight: 600; color: #111827;"><span id="statPaidSessions">{{ $paidSessionsCount ?? 0 }}</span> paid</span>
+            <span>•</span>
+            <span style="font-weight: 600; color: #10B981;"><span id="statFreeSessions">{{ $freeSessionsCount ?? 0 }}</span> free grace</span>
+        </div>
+    </div>
+
+    <!-- Card 5: 15-Min Free Grace & Accuracy -->
+    <div class="kpi-card-clean">
+        <div class="kpi-card-top">
+            <span class="kpi-label">15M Grace & OCR</span>
+            <div class="kpi-icon-pill"><i class="ri-shield-check-line"></i></div>
+        </div>
+        <div>
+            <div class="kpi-main-val" id="statOcrAccuracy">{{ $successRate ?? 98.5 }}%</div>
+        </div>
+        <div class="kpi-subtext">
+            <span style="color: #10B981; font-weight: 600;">15m Grace Active</span>
+            <span>• ₱0.00 assessed</span>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     DASHBOARD MAIN LAYOUT (ACTIVITY STREAM + TERMINALS SIDEBAR)
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="dashboard-layout">
+    <!-- Main Activity Stream Table Card -->
+    <div class="activity-card">
+        <div class="activity-header">
+            <div class="activity-header-title">
+                <h2><i class="ri-time-line"></i> Recent Parking Transactions</h2>
                 <p>Live stream of incoming and outgoing vehicle detections</p>
             </div>
             <div style="display: flex; gap: 0.5rem;">
-                <a href="{{ route('plate-ocr.index') }}" class="btn btn-entry">
+                <a href="{{ route('plate-ocr.index') }}" class="btn-topbar outline" style="padding: 0.4rem 0.75rem; font-size: 0.8125rem;">
                     <i class="ri-camera-line"></i>
-                    <span>Entry Cam</span>
+                    <span>Gate 1 (Entry)</span>
                 </a>
-                <a href="{{ route('plate-ocr.exit-scan') }}" class="btn btn-exit">
-                    <i class="ri-logout-box-r-line"></i>
-                    <span>Exit Cam</span>
+                <a href="{{ route('plate-ocr.exit-scan') }}" class="btn-topbar outline" style="padding: 0.4rem 0.75rem; font-size: 0.8125rem;">
+                    <i class="ri-camera-line"></i>
+                    <span>Gate 2 (Exit)</span>
                 </a>
             </div>
         </div>
 
-        <div class="filter-bar">
-            <form method="GET" action="{{ route('dashboard') }}" style="display: flex; gap: 0.75rem; flex-wrap: wrap; flex: 1;">
+        <!-- Clean Search & Filter Bar -->
+        <div class="table-filter-bar">
+            <form method="GET" action="{{ route('dashboard') }}" class="filter-form-clean">
                 <input
                     type="text"
                     name="plate"
                     value="{{ request('plate') }}"
-                    placeholder="Search plate number..."
-                    style="flex: 1; min-width: 200px;"
+                    placeholder="Search license plate number..."
+                    class="input-search-clean"
                 />
-                <select name="date_filter">
+                <select name="date_filter" class="select-clean">
                     <option value="" {{ request('date_filter') == '' ? 'selected' : '' }}>All Time</option>
                     <option value="today" {{ request('date_filter') == 'today' ? 'selected' : '' }}>Today</option>
                     <option value="week" {{ request('date_filter') == 'week' ? 'selected' : '' }}>This Week</option>
                     <option value="month" {{ request('date_filter') == 'month' ? 'selected' : '' }}>This Month</option>
                 </select>
-                <button type="submit" class="btn btn-primary"><i class="ri-filter-3-line"></i> Filter</button>
+                <button type="submit" class="btn-filter-clean">
+                    <i class="ri-search-line"></i> Filter
+                </button>
             </form>
         </div>
 
-        <div class="table-wrapper" style="overflow-x: auto;">
-            <table class="data-table">
+        <!-- Clean Table Content -->
+        <div class="clean-table-wrap">
+            <table class="clean-table">
                 <thead>
                     <tr>
                         <th>Vehicle Plate</th>
-                        <th>Detection Timestamp</th>
-                        <th>Status</th>
-                        <th>Gate Action</th>
+                        <th>Timestamps</th>
+                        <th>Duration & Grace</th>
+                        <th>Fee & Status</th>
+                        <th>State</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="gateActivityTbody">
                     @forelse ($entries as $entry)
+                        @php
+                            $avgConf = $entry->average_confidence;
+                            $isLowConf = $entry->isLowConfidence();
+                            $isFree = $entry->isFreeGrace();
+                            $fee = (float)($entry->parking_fee ?? 0);
+                        @endphp
                         <tr>
+                            <!-- Vehicle Plate & Type -->
                             <td>
-                                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                    @php
-                                        $displayImage = null;
-                                        $croppedPath = $entry->entry_image_path ? str_replace('.', '_cropped.', $entry->entry_image_path) : null;
-                                        $exitCroppedPath = $entry->exit_image_path ? str_replace('.', '_cropped.', $entry->exit_image_path) : null;
+                                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                                    <div style="display: flex; align-items: center; gap: 0.45rem;">
+                                        <div class="plate-chip">
+                                            <span class="plate-chip-text">{{ $entry->plate_number }}</span>
+                                        </div>
+                                        @if($entry->is_manually_corrected)
+                                            <span class="badge-soft-green" title="Manually verified by staff">Verified</span>
+                                        @endif
+                                    </div>
+                                    <div style="font-size: 0.725rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.35rem;">
+                                        <span style="text-transform: capitalize;">{{ $entry->vehicle_type ?? 'Car' }}</span>
+                                        <span>•</span>
+                                        @if($isLowConf)
+                                            <span class="badge-soft-amber" onclick="openCorrectPlateModal('{{ $entry->id }}', '{{ $entry->plate_number }}', '{{ optional($entry->entry_time)->format('M d, Y • h:i A') }}', '{{ $entry->gate_entry }}', '{{ $avgConf }}', '')" title="Confidence < 70%. Click to correct.">
+                                                <i class="ri-alert-line"></i> Check OCR
+                                            </span>
+                                        @elseif($avgConf)
+                                            <span style="color: var(--emerald); font-weight: 600;">{{ round($avgConf, 1) }}% AI</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </td>
 
-                                        if ($croppedPath && \Illuminate\Support\Facades\Storage::disk('public')->exists($croppedPath)) {
-                                            $displayImage = asset('storage/' . $croppedPath);
-                                        } elseif ($entry->entry_image_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($entry->entry_image_path)) {
-                                            $displayImage = asset('storage/' . $entry->entry_image_path);
-                                        } elseif ($exitCroppedPath && \Illuminate\Support\Facades\Storage::disk('public')->exists($exitCroppedPath)) {
-                                            $displayImage = asset('storage/' . $exitCroppedPath);
-                                        } elseif ($entry->exit_image_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($entry->exit_image_path)) {
-                                            $displayImage = asset('storage/' . $entry->exit_image_path);
-                                        }
-                                    @endphp
-                                    
-                                    @if($displayImage)
-                                        <div class="plate-thumbnail-container" onclick="openPlatePreview('{{ $displayImage }}', '{{ $entry->plate_number }}')" title="Click to view plate photo for {{ $entry->plate_number }}">
-                                            <img src="{{ $displayImage }}" alt="Plate Photo {{ $entry->plate_number }}" class="plate-thumbnail-img">
-                                        </div>
-                                    @else
-                                        <div class="plate-thumbnail-container" title="Plate: {{ $entry->plate_number }}">
-                                            <div class="plate-graphic-fallback">
-                                                <span class="plate-sub-text">AUTOTRACE</span>
-                                                <span class="plate-main-text">{{ $entry->plate_number }}</span>
-                                            </div>
-                                        </div>
-                                    @endif
-                                    
-                                    <span class="plate-badge" style="margin: 0; font-family: 'Courier New', monospace; font-weight: 800; letter-spacing: 1px;">{{ $entry->plate_number }}</span>
-                                </div>
-                            </td>
+                            <!-- Timestamps (In & Out) -->
                             <td>
-                                <div style="font-weight: 600; color: var(--text-primary);">
-                                    {{ optional($entry->entry_time)->format('M d, Y') ?? '—' }}
+                                <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-head);">
+                                    {{ optional($entry->entry_time)->format('h:i A') ?? '—' }}
                                 </div>
-                                <div style="font-size: 0.75rem; color: var(--text-tertiary);">
-                                    <i class="ri-time-line"></i> {{ optional($entry->entry_time)->format('h:i A') ?? '' }}
+                                <div style="font-size: 0.725rem; color: var(--text-muted);">
+                                    {{ optional($entry->entry_time)->format('M d, Y') ?? '' }}
+                                    @if($entry->exit_time)
+                                        • Out: <strong style="color: var(--text-body);">{{ $entry->exit_time->format('h:i A') }}</strong>
+                                    @endif
                                 </div>
                             </td>
+
+                            <!-- Duration & Grace Rule Status -->
                             <td>
                                 @if($entry->status === 'exited')
-                                    <span class="status-badge exited"><i class="ri-logout-box-r-line"></i> Exited</span>
+                                    <div style="font-weight: 700; color: var(--text-head); font-size: 0.85rem;">
+                                        {{ $entry->duration_formatted }}
+                                    </div>
+                                    @if($isFree)
+                                        <span class="badge-soft-green" title="Departed within 15-minute free window">
+                                            <i class="ri-gift-line"></i> Free Grace (≤15m)
+                                        </span>
+                                    @else
+                                        <span class="badge-soft-slate">Standard Tariff</span>
+                                    @endif
                                 @else
-                                    <span class="status-badge entered"><i class="ri-login-box-line"></i> Parked (Entered)</span>
+                                    @php
+                                        $minsNow = (int) (optional($entry->entry_time)->diffInMinutes(now()) ?? 0);
+                                    @endphp
+                                    <div style="font-weight: 700; color: var(--primary-blue); font-size: 0.85rem;">
+                                        {{ $minsNow }}m elapsed
+                                    </div>
+                                    @if($minsNow <= 15)
+                                        <span class="badge-soft-green" title="Eligible for ₱0.00 fee if departing within 15 minutes">
+                                            <i class="ri-timer-line"></i> Grace Active ({{ 15 - $minsNow }}m left)
+                                        </span>
+                                    @else
+                                        <span class="badge-soft-slate">Base Tariff Active</span>
+                                    @endif
                                 @endif
                             </td>
+
+                            <!-- Parking Fee & Payment Status -->
                             <td>
-                                <div class="action-btns">
+                                @if($entry->status === 'exited')
+                                    <div style="font-weight: 800; font-size: 0.95rem; color: {{ $isFree ? 'var(--emerald)' : 'var(--text-head)' }};">
+                                        {{ $isFree ? '₱0.00 (Free)' : '₱' . number_format($fee, 2) }}
+                                    </div>
+                                    <span class="badge-soft-{{ $entry->payment_status === 'paid' ? 'green' : ($isFree ? 'slate' : 'amber') }}">
+                                        {{ ucfirst($entry->payment_status ?? 'Unpaid') }}
+                                    </span>
+                                @else
+                                    <span style="font-size: 0.775rem; color: var(--text-muted);">Assessed at exit</span>
+                                @endif
+                            </td>
+
+                            <!-- State: Parked or Exited -->
+                            <td>
+                                @if($entry->status === 'exited')
+                                    <span class="badge-soft-slate"><i class="ri-checkbox-circle-line"></i> Exited</span>
+                                @else
+                                    <span class="badge-soft-green"><i class="ri-parking-box-line"></i> Parked</span>
+                                @endif
+                            </td>
+
+                            <!-- Gate Actions -->
+                            <td>
+                                <div class="table-actions-group">
+                                    <button type="button" class="btn-action-icon edit-action" title="Correct Misread Plate" onclick="openCorrectPlateModal('{{ $entry->id }}', '{{ $entry->plate_number }}', '{{ optional($entry->entry_time)->format('M d, Y • h:i A') }}', '{{ $entry->gate_entry }}', '{{ $avgConf }}', '')">
+                                        <i class="ri-edit-line"></i>
+                                    </button>
                                     @if($entry->status === 'entered')
-                                        <form method="POST" action="{{ route('plate-ocr.exit', $entry->id) }}" style="display:inline;" onsubmit="return confirm('Mark vehicle {{ $entry->plate_number }} as EXITED?')">
+                                        <form method="POST" action="{{ route('plate-ocr.exit', $entry->id) }}" style="display:inline;" onsubmit="return confirm('Process checkout and record exit for vehicle {{ $entry->plate_number }}?')">
                                             @csrf
-                                            <button type="submit" class="action-btn exit-btn" title="Manual Exit Gate Checkout"><i class="ri-logout-box-r-line"></i></button>
+                                            <button type="submit" class="btn-action-icon exit-action" title="Manual Exit Gate Checkout">
+                                                <i class="ri-logout-box-r-line"></i>
+                                            </button>
                                         </form>
                                     @endif
-                                    <a href="{{ route('plate-ocr.download', ['plate' => $entry->plate_number, 'timestamp' => optional($entry->entry_time)->format('Y-m-d H:i:s')]) }}"
-                                       class="action-btn"
-                                       title="Download QR Gate Pass"><i class="ri-download-line"></i></a>
-                                    <button type="button" class="action-btn" title="Print Ticket" onclick="printTicket('{{ route('plate-ocr.print', $entry->id) }}')"><i class="ri-printer-line"></i></button>
+                                    <a href="{{ route('plate-ocr.download', ['plate' => $entry->plate_number, 'timestamp' => optional($entry->entry_time)->format('Y-m-d H:i:s')]) }}" class="btn-action-icon" title="Download QR Gate Pass">
+                                        <i class="ri-download-line"></i>
+                                    </a>
+                                    <button type="button" class="btn-action-icon" title="Print Ticket" onclick="printTicket('{{ route('plate-ocr.print', $entry->id) }}')">
+                                        <i class="ri-printer-line"></i>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4">
-                                <div class="empty-state">
-                                    <div class="empty-icon"><i class="ri-car-line"></i></div>
-                                    <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem;">No Gate Activity Recorded</h3>
-                                    <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 1rem;">Position vehicle at Gate 1 or Gate 2 camera to detect license plates.</p>
-                                    <a href="{{ route('plate-ocr.index') }}" class="btn btn-entry">
-                                        <i class="ri-camera-line"></i>
-                                        <span>Open Gate 1 (Entry Cam)</span>
-                                    </a>
-                                </div>
+                            <td colspan="6" style="text-align: center; padding: 3rem 1.5rem; color: var(--text-muted);">
+                                <i class="ri-car-line" style="font-size: 2.5rem; display: block; margin-bottom: 0.5rem; opacity: 0.3;"></i>
+                                <strong style="color: var(--text-head); font-size: 1rem;">No Gate Activity Recorded</strong>
+                                <p style="font-size: 0.85rem; margin-top: 0.25rem;">Vehicles entering Gate 1 or exiting Gate 2 will appear here automatically.</p>
                             </td>
                         </tr>
                     @endforelse
@@ -1017,23 +1120,24 @@
             </table>
         </div>
 
+        <!-- Clean Pagination -->
         <div id="tablePaginationContainer">
             @if($entries->count() > 0)
-                <div class="pagination">
-                    <div style="font-size: 0.8125rem; color: var(--text-secondary);">
-                        Showing {{ $entries->firstItem() ?? 0 }} - {{ $entries->lastItem() ?? 0 }} of {{ $entries->total() }} gate detections in active session
+                <div style="padding: 1rem 1.5rem; background: #F8FAFC; border-top: 1px solid var(--card-border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+                    <div style="font-size: 0.8125rem; color: var(--text-body);">
+                        Showing {{ $entries->firstItem() ?? 0 }} - {{ $entries->lastItem() ?? 0 }} of {{ $entries->total() }} records
                     </div>
-                    <div style="display: flex; gap: 0.5rem;">
+                    <div style="display: flex; gap: 0.4rem;">
                         @if($entries->onFirstPage())
-                            <button class="btn btn-secondary" disabled style="opacity: 0.5;">Previous</button>
+                            <button class="btn-topbar outline" disabled style="opacity: 0.5; padding: 0.35rem 0.75rem; font-size: 0.775rem;">Previous</button>
                         @else
-                            <a href="{{ $entries->previousPageUrl() }}" class="btn btn-secondary">Previous</a>
+                            <a href="{{ $entries->previousPageUrl() }}" class="btn-topbar outline" style="padding: 0.35rem 0.75rem; font-size: 0.775rem;">Previous</a>
                         @endif
 
                         @if($entries->hasMorePages())
-                            <a href="{{ $entries->nextPageUrl() }}" class="btn btn-secondary">Next</a>
+                            <a href="{{ $entries->nextPageUrl() }}" class="btn-topbar outline" style="padding: 0.35rem 0.75rem; font-size: 0.775rem;">Next</a>
                         @else
-                            <button class="btn btn-secondary" disabled style="opacity: 0.5;">Next</button>
+                            <button class="btn-topbar outline" disabled style="opacity: 0.5; padding: 0.35rem 0.75rem; font-size: 0.775rem;">Next</button>
                         @endif
                     </div>
                 </div>
@@ -1041,56 +1145,55 @@
         </div>
     </div>
 
-    <!-- Quick Terminals Sidebar -->
-    <div>
-        <div class="sidebar-widget">
-            <div class="sidebar-widget-header">
-                <i class="ri-sensor-line" style="color: #2563EB;"></i> Gate Terminals
+    <!-- Right Sidebar: Terminals & Recent Exits -->
+    <div class="sidebar-col">
+        <!-- Quick Terminals Card -->
+        <div class="widget-box">
+            <div class="widget-box-header">
+                <span><i class="ri-sensor-line"></i> Gate Terminals</span>
             </div>
-            <div class="terminal-quick-grid">
-                <a href="{{ route('plate-ocr.index') }}" class="terminal-quick-card entry-cam">
-                    <div class="terminal-icon-box entry"><i class="ri-login-box-line"></i></div>
-                    <div class="terminal-details">
-                        <h4>Gate 1 • Entry Camera</h4>
-                        <p>Scan incoming vehicle & issue QR</p>
-                    </div>
-                </a>
-                <a href="{{ route('plate-ocr.exit-scan') }}" class="terminal-quick-card exit-cam">
-                    <div class="terminal-icon-box exit"><i class="ri-logout-box-r-line"></i></div>
-                    <div class="terminal-details">
-                        <h4>Gate 2 • Exit Camera</h4>
-                        <p>Scan outgoing vehicle & checkout</p>
-                    </div>
-                </a>
-                <a href="{{ route('plate-ocr.history') }}" class="terminal-quick-card">
-                    <div class="terminal-icon-box" style="background: #EFF6FF; color: #2563EB;"><i class="ri-history-line"></i></div>
-                    <div class="terminal-details">
-                        <h4>Parking Logs Report</h4>
-                        <p>Full archive & csv export</p>
-                    </div>
-                </a>
-            </div>
+            <a href="{{ route('plate-ocr.index') }}" class="terminal-link-card">
+                <div class="terminal-avatar"><i class="ri-login-box-line"></i></div>
+                <div class="terminal-info">
+                    <h4>Gate 1 • Entry Camera</h4>
+                    <p>Detect vehicle & issue pass</p>
+                </div>
+            </a>
+            <a href="{{ route('plate-ocr.exit-scan') }}" class="terminal-link-card">
+                <div class="terminal-avatar"><i class="ri-logout-box-r-line"></i></div>
+                <div class="terminal-info">
+                    <h4>Gate 2 • Exit Camera</h4>
+                    <p>Scan exit & calculate fee</p>
+                </div>
+            </a>
+            <a href="{{ route('plate-ocr.history') }}" class="terminal-link-card">
+                <div class="terminal-avatar"><i class="ri-file-list-3-line"></i></div>
+                <div class="terminal-info">
+                    <h4>Parking Logs Archive</h4>
+                    <p>Complete logs & CSV export</p>
+                </div>
+            </a>
         </div>
 
-        <!-- Recently Exited Stream -->
-        <div class="sidebar-widget">
-            <div class="sidebar-widget-header">
-                <i class="ri-logout-box-r-line" style="color: #F97316;"></i> Recent Checkout Exits
+        <!-- Recent Exits Stream -->
+        <div class="widget-box">
+            <div class="widget-box-header">
+                <span><i class="ri-logout-box-r-line"></i> Recent Checkouts</span>
             </div>
-            <div class="recent-exits-list" id="recentExitsList">
+            <div id="recentExitsList">
                 @forelse($recentExited as $exited)
-                    <div class="exit-item">
+                    <div class="recent-exit-row">
                         <div>
-                            <div class="exit-item-plate">{{ $exited->plate_number }}</div>
-                            <div class="exit-item-time">
-                                <i class="ri-time-line"></i> {{ optional($exited->exit_time)->format('M d, h:i A') ?? '—' }}
+                            <strong style="font-family: monospace; letter-spacing: 0.05em; color: var(--text-head);">{{ $exited->plate_number }}</strong>
+                            <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 1px;">
+                                {{ optional($exited->exit_time)->format('h:i A') ?? '—' }}
                             </div>
                         </div>
-                        <span class="status-badge exited" style="font-size: 0.7rem;">Exited</span>
+                        <span class="badge-soft-slate">Exited</span>
                     </div>
                 @empty
-                    <div style="text-align: center; padding: 1.5rem 1rem; color: var(--text-tertiary); font-size: 0.8125rem;">
-                        <i class="ri-car-line" style="font-size: 1.75rem; display: block; margin-bottom: 0.25rem; opacity: 0.4;"></i>
+                    <div style="text-align: center; padding: 2rem 1rem; color: var(--text-muted); font-size: 0.8125rem;">
+                        <i class="ri-car-line" style="font-size: 1.5rem; display: block; margin-bottom: 0.25rem; opacity: 0.3;"></i>
                         No vehicles have exited yet in this session
                     </div>
                 @endforelse
@@ -1099,34 +1202,33 @@
     </div>
 </div>
 
-<!-- End Session Confirmation Modal -->
+<!-- ═══════════════════════════════════════════════════════════════
+     CONFIRM END SESSION MODAL (Clean, Gentle)
+     ═══════════════════════════════════════════════════════════════ -->
 <div class="session-modal-overlay" id="confirmEndModal">
-    <div class="session-modal-dialog" style="max-width: 480px;">
-        <div class="session-modal-header" style="background: #FEF2F2; border-bottom: 1px solid #FECACA;">
+    <div class="session-modal-dialog" style="max-width: 460px;">
+        <div class="session-modal-header" style="background: #FEF2F2; border-bottom: 1px solid #FEE2E2;">
             <div class="session-modal-title" style="color: #991B1B;">
-                <i class="ri-alert-line" style="font-size: 1.35rem;"></i>
+                <i class="ri-alert-line"></i>
                 <span>Confirm End Session</span>
             </div>
             <button class="session-modal-close" onclick="closeConfirmModal()">&times;</button>
         </div>
-        <div class="session-modal-body" style="text-align: center; padding: 2rem 1.75rem;">
-            <div style="width: 60px; height: 60px; border-radius: 50%; background: #FEE2E2; color: #DC2626; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; margin: 0 auto 1.25rem;">
-                <i class="ri-stop-circle-fill"></i>
-            </div>
-            <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--text-primary); margin-bottom: 0.6rem;">
+        <div class="session-modal-body" style="text-align: center; padding: 1.75rem 1.5rem;">
+            <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--text-head); margin-bottom: 0.5rem;">
                 End Current Parking Session?
             </h3>
-            <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 1.25rem;">
-                Are you sure you want to end this parking session? This will generate the session summary and start a new session.
+            <p style="font-size: 0.875rem; color: var(--text-body); line-height: 1.5; margin-bottom: 1.25rem;">
+                This will finalize shift totals, archive all transactions, and begin a fresh session for incoming attendants.
             </p>
-            <div style="background: #F8FAFC; border: 1px solid var(--border-color); border-radius: 10px; padding: 0.85rem 1rem; font-size: 0.8rem; color: var(--text-tertiary); text-align: left;">
-                <i class="ri-information-line" style="color: #2563EB;"></i> 
-                All vehicles from this session will be preserved in the archive logs. The active dashboard counters will reset to 0 for the incoming shift.
+            <div style="background: #F8FAFC; border: 1px solid var(--card-border); border-radius: 10px; padding: 0.75rem 1rem; font-size: 0.775rem; color: var(--text-muted); text-align: left;">
+                <i class="ri-information-line" style="color: var(--primary-blue);"></i> 
+                All vehicles recorded will remain preserved in historical logs.
             </div>
         </div>
         <div class="session-modal-footer">
-            <button type="button" class="btn btn-secondary" onclick="closeConfirmModal()">Cancel</button>
-            <button type="button" class="btn btn-danger" id="btnConfirmEndSession" onclick="executeEndSession()" style="background: #DC2626; color: white;">
+            <button type="button" class="btn-topbar outline" onclick="closeConfirmModal()">Cancel</button>
+            <button type="button" class="btn-topbar soft-danger" id="btnConfirmEndSession" onclick="executeEndSession()">
                 <i class="ri-check-line"></i>
                 <span id="btnConfirmEndText">Confirm & End Session</span>
             </button>
@@ -1134,133 +1236,87 @@
     </div>
 </div>
 
-<!-- Session Summary Modal -->
+<!-- ═══════════════════════════════════════════════════════════════
+     SESSION SUMMARY MODAL
+     ═══════════════════════════════════════════════════════════════ -->
 <div class="session-modal-overlay" id="sessionSummaryModal">
     <div class="session-modal-dialog">
-        <div class="session-modal-header" style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); color: white; border-bottom: none;">
+        <div class="session-modal-header">
             <div>
-                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
-                    <span style="background: rgba(16, 185, 129, 0.2); color: #34D399; font-size: 0.72rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.4);">
-                        <i class="ri-checkbox-circle-fill"></i> SESSION FINALIZED
-                    </span>
-                    <span id="summarySessionCodeBadge" style="color: #94A3B8; font-family: monospace; font-size: 0.8rem; font-weight: 600;">SES-001</span>
-                </div>
-                <div class="session-modal-title" style="color: white; font-size: 1.35rem;">
-                    Parking Session Summary
+                <span class="badge-soft-green" style="margin-bottom: 0.25rem;">
+                    <i class="ri-checkbox-circle-fill"></i> SESSION FINALIZED
+                </span>
+                <div class="session-modal-title">
+                    Session Summary: <span id="summarySessionCodeBadge" style="font-family: monospace; color: var(--primary-blue);">SES-001</span>
                 </div>
             </div>
-            <button class="session-modal-close" style="color: #94A3B8;" onclick="closeSummaryAndStartNew()">&times;</button>
+            <button class="session-modal-close" onclick="closeSummaryAndStartNew()">&times;</button>
         </div>
 
         <div class="session-modal-body">
-            <!-- Session Timestamps Banner -->
-            <div style="background: #F8FAFC; border: 1px solid var(--border-color); border-radius: 12px; padding: 0.85rem 1.25rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
-                <div>
-                    <div style="font-size: 0.72rem; color: var(--text-tertiary); font-weight: 600; text-transform: uppercase;">Session Start Time</div>
-                    <div style="font-weight: 700; font-size: 0.85rem; color: var(--text-primary);" id="summaryStartTime">—</div>
+            <div class="summary-grid-4">
+                <div class="summary-tile">
+                    <div class="summary-tile-label"><i class="ri-wallet-3-line"></i> Total Revenue</div>
+                    <div class="summary-tile-val" id="summaryRevenue" style="color: var(--purple);">₱0.00</div>
                 </div>
-                <div style="text-align: right;">
-                    <div style="font-size: 0.72rem; color: var(--text-tertiary); font-weight: 600; text-transform: uppercase;">Session End Time</div>
-                    <div style="font-weight: 700; font-size: 0.85rem; color: var(--text-primary);" id="summaryEndTime">—</div>
+                <div class="summary-tile">
+                    <div class="summary-tile-label"><i class="ri-car-line"></i> Total Vehicles</div>
+                    <div class="summary-tile-val" id="summaryVehicles">0 Cars</div>
                 </div>
-            </div>
-
-            <!-- Large 4-Card Summary Grid -->
-            <div class="summary-cards-grid">
-                <!-- Total Revenue -->
-                <div class="summary-card revenue">
-                    <div class="summary-card-label">
-                        <i class="ri-wallet-3-line"></i> TOTAL REVENUE
-                    </div>
-                    <div class="summary-card-val" id="summaryRevenue">₱0.00</div>
-                    <div style="font-size: 0.75rem; color: #7C3AED; margin-top: 0.25rem; font-weight: 600;">
-                        Collected during session
-                    </div>
+                <div class="summary-tile">
+                    <div class="summary-tile-label"><i class="ri-parking-box-line"></i> Left Inside</div>
+                    <div class="summary-tile-val" id="summaryParked" style="color: var(--emerald);">0 Cars</div>
                 </div>
-
-                <!-- Total Vehicles -->
-                <div class="summary-card vehicles">
-                    <div class="summary-card-label">
-                        <i class="ri-car-line"></i> TOTAL VEHICLES
-                    </div>
-                    <div class="summary-card-val" id="summaryVehicles">0 Cars</div>
-                    <div style="font-size: 0.75rem; color: #2563EB; margin-top: 0.25rem; font-weight: 600;">
-                        Entered parking lot
-                    </div>
-                </div>
-
-                <!-- Currently Parked -->
-                <div class="summary-card parked">
-                    <div class="summary-card-label">
-                        <i class="ri-parking-box-line"></i> CURRENTLY PARKED
-                    </div>
-                    <div class="summary-card-val" id="summaryParked">0 Cars</div>
-                    <div style="font-size: 0.75rem; color: #059669; margin-top: 0.25rem; font-weight: 600;">
-                        Vehicles inside parking lot
-                    </div>
-                </div>
-
-                <!-- Completed Parking Sessions -->
-                <div class="summary-card completed">
-                    <div class="summary-card-label">
-                        <i class="ri-checkbox-circle-line"></i> COMPLETED SESSIONS
-                    </div>
-                    <div class="summary-card-val" id="summaryCompleted">0 Cars</div>
-                    <div style="font-size: 0.75rem; color: #EA580C; margin-top: 0.25rem; font-weight: 600;">
-                        Entered & checked out
-                    </div>
+                <div class="summary-tile">
+                    <div class="summary-tile-label"><i class="ri-checkbox-circle-line"></i> Completed Exits</div>
+                    <div class="summary-tile-val" id="summaryCompleted" style="color: #EA580C;">0 Cars</div>
                 </div>
             </div>
 
-            <!-- Accumulated Parking Duration -->
-            <div class="summary-meta-strip">
-                <div class="summary-meta-row">
-                    <span><i class="ri-timer-line" style="color: #F59E0B;"></i> Total Parking Duration</span>
-                    <strong style="color: #F59E0B; font-size: 1rem;" id="summaryDuration">0m</strong>
-                </div>
-                <div class="summary-meta-row" style="font-size: 0.78rem; border-top: 1px dashed var(--border-color); padding-top: 0.5rem;">
-                    <span><i class="ri-database-2-line" style="color: #10B981;"></i> Archival Status</span>
-                    <strong style="color: #10B981;">Saved to Historical Database Records</strong>
-                </div>
+            <div style="background: #F8FAFC; border: 1px solid var(--card-border); border-radius: 10px; padding: 0.85rem 1rem; font-size: 0.8125rem; display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: var(--text-body);"><i class="ri-time-line"></i> Total Dwell Duration:</span>
+                <strong style="color: var(--text-head);" id="summaryDuration">0m</strong>
             </div>
         </div>
 
         <div class="session-modal-footer">
-            <button type="button" class="btn btn-secondary" onclick="window.print()">
-                <i class="ri-printer-line"></i> Print Summary
+            <button type="button" class="btn-topbar outline" onclick="window.print()">
+                <i class="ri-printer-line"></i> Print
             </button>
-            <button type="button" class="btn btn-primary" onclick="closeSummaryAndStartNew()" style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-color: #059669; padding: 0.65rem 1.4rem; font-weight: 800;">
-                <i class="ri-restart-line"></i> Close / Start New Session
+            <button type="button" class="btn-topbar primary-fee" onclick="closeSummaryAndStartNew()">
+                <i class="ri-restart-line"></i> Start New Session
             </button>
         </div>
     </div>
 </div>
 
-<!-- Session History Archive Modal -->
+<!-- ═══════════════════════════════════════════════════════════════
+     SESSION HISTORY ARCHIVE MODAL
+     ═══════════════════════════════════════════════════════════════ -->
 <div class="session-modal-overlay" id="sessionHistoryModal">
-    <div class="session-modal-dialog" style="max-width: 800px;">
+    <div class="session-modal-dialog" style="max-width: 780px;">
         <div class="session-modal-header">
             <div class="session-modal-title">
-                <i class="ri-archive-line" style="color: #2563EB;"></i>
+                <i class="ri-archive-line" style="color: var(--primary-blue);"></i>
                 <span>Historical Parking Sessions</span>
             </div>
             <button class="session-modal-close" onclick="closeSessionHistoryModal()">&times;</button>
         </div>
         <div class="session-modal-body" style="max-height: 480px; overflow-y: auto; padding: 1.25rem;">
-            <div id="sessionHistoryLoading" style="text-align: center; padding: 2rem; color: var(--text-tertiary);">
+            <div id="sessionHistoryLoading" style="text-align: center; padding: 2rem; color: var(--text-muted);">
                 <i class="ri-loader-4-line ri-spin" style="font-size: 1.8rem;"></i>
                 <p style="margin-top: 0.5rem; font-size: 0.85rem;">Loading session archives...</p>
             </div>
             <div id="sessionHistoryContent" style="display: none;">
-                <table class="data-table">
+                <table class="clean-table">
                     <thead>
                         <tr>
                             <th>Session Code</th>
                             <th>Time Window</th>
-                            <th>Total Vehicles</th>
+                            <th>Vehicles</th>
                             <th>Exits</th>
                             <th>Parked</th>
-                            <th>Total Revenue</th>
+                            <th>Revenue</th>
                             <th>Duration</th>
                         </tr>
                     </thead>
@@ -1270,10 +1326,14 @@
             </div>
         </div>
         <div class="session-modal-footer">
-            <button type="button" class="btn btn-secondary" onclick="closeSessionHistoryModal()">Close</button>
+            <button type="button" class="btn-topbar outline" onclick="closeSessionHistoryModal()">Close</button>
         </div>
     </div>
 </div>
+
+<!-- Change Parking Fee & Plate Correction Modals -->
+@include('partials.change-fee-modal')
+@include('partials.correct-plate-modal')
 
 <script>
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
@@ -1310,8 +1370,6 @@ async function executeEndSession() {
 
             // Populate summary modal
             document.getElementById('summarySessionCodeBadge').textContent = data.summary.session_code;
-            document.getElementById('summaryStartTime').textContent = data.summary.started_at;
-            document.getElementById('summaryEndTime').textContent = data.summary.ended_at;
             document.getElementById('summaryRevenue').textContent = data.summary.formatted_revenue;
             document.getElementById('summaryVehicles').textContent = data.summary.total_vehicles + ' Cars';
             document.getElementById('summaryParked').textContent = data.summary.currently_parked + ' Cars';
@@ -1336,7 +1394,6 @@ async function executeEndSession() {
 }
 
 function resetDashboardState(newSession) {
-    // 1. Reset Stats Grid Counters
     const revEl = document.getElementById('statSessionRevenue');
     if (revEl) revEl.textContent = '₱0.00';
 
@@ -1349,61 +1406,44 @@ function resetDashboardState(newSession) {
     const compEl = document.getElementById('statCompletedSessions');
     if (compEl) compEl.textContent = '0';
 
-    // 2. Reset Capacity Bar
     const occEl = document.getElementById('capacityOccupiedText');
     if (occEl) occEl.textContent = '0';
 
     const availEl = document.getElementById('capacityAvailableText');
-    if (availEl) availEl.textContent = '50 Slots Available';
+    if (availEl) availEl.textContent = '50 slots available';
 
     const pctEl = document.getElementById('capacityPercentText');
-    if (pctEl) pctEl.textContent = '0%';
+    if (pctEl) pctEl.textContent = '0% occupied';
 
     const fillEl = document.getElementById('capacityBarFill');
     if (fillEl) fillEl.style.width = '0%';
 
-    // 3. Clear Table
     const tbody = document.getElementById('gateActivityTbody');
     if (tbody) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="4">
-                    <div class="empty-state">
-                        <div class="empty-icon"><i class="ri-car-line"></i></div>
-                        <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem;">No Gate Activity Recorded in This Session</h3>
-                        <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 1rem;">Gate 1 and Gate 2 cameras are active and ready to detect arriving and departing vehicles.</p>
-                        <div style="display: flex; gap: 0.5rem; justify-content: center;">
-                            <a href="{{ route('plate-ocr.index') }}" class="btn btn-entry">
-                                <i class="ri-camera-line"></i>
-                                <span>Gate 1 (Entry Cam)</span>
-                            </a>
-                            <a href="{{ route('plate-ocr.exit-scan') }}" class="btn btn-exit">
-                                <i class="ri-logout-box-r-line"></i>
-                                <span>Gate 2 (Exit Cam)</span>
-                            </a>
-                        </div>
-                    </div>
+                <td colspan="6" style="text-align: center; padding: 3rem 1.5rem; color: var(--text-muted);">
+                    <i class="ri-car-line" style="font-size: 2.5rem; display: block; margin-bottom: 0.5rem; opacity: 0.3;"></i>
+                    <strong style="color: var(--text-head); font-size: 1rem;">No Gate Activity Recorded in This Session</strong>
+                    <p style="font-size: 0.85rem; margin-top: 0.25rem;">Gate 1 and Gate 2 cameras are active and ready to detect arriving and departing vehicles.</p>
                 </td>
             </tr>
         `;
     }
 
-    // 4. Hide pagination
     const pag = document.getElementById('tablePaginationContainer');
     if (pag) pag.style.display = 'none';
 
-    // 5. Clear Recent Exits List
     const exitsList = document.getElementById('recentExitsList');
     if (exitsList) {
         exitsList.innerHTML = `
-            <div style="text-align: center; padding: 1.5rem 1rem; color: var(--text-tertiary); font-size: 0.8125rem;">
-                <i class="ri-car-line" style="font-size: 1.75rem; display: block; margin-bottom: 0.25rem; opacity: 0.4;"></i>
+            <div style="text-align: center; padding: 2rem 1rem; color: var(--text-muted); font-size: 0.8125rem;">
+                <i class="ri-car-line" style="font-size: 1.5rem; display: block; margin-bottom: 0.25rem; opacity: 0.3;"></i>
                 No vehicles have exited yet in this session
             </div>
         `;
     }
 
-    // 6. Update Active Session Pill
     const pill = document.getElementById('sessionPillText');
     if (pill && newSession) {
         pill.innerHTML = 'Session: <strong>' + newSession.session_code + '</strong>';
@@ -1434,22 +1474,22 @@ async function openSessionHistoryModal() {
         if (data.sessions && data.sessions.length > 0) {
             tbody.innerHTML = data.sessions.map(s => `
                 <tr>
-                    <td><strong style="font-family: monospace; color: var(--primary-color);">${s.session_code}</strong></td>
+                    <td><strong style="font-family: monospace; color: var(--primary-blue);">${s.session_code}</strong></td>
                     <td>
                         <div style="font-weight: 600; font-size: 0.8rem;">${s.started_at}</div>
-                        <div style="font-size: 0.725rem; color: var(--text-tertiary);">to ${s.ended_at}</div>
+                        <div style="font-size: 0.725rem; color: var(--text-muted);">to ${s.ended_at}</div>
                     </td>
                     <td><strong>${s.total_vehicles}</strong> cars</td>
-                    <td><span style="color: #F97316; font-weight: 700;">${s.completed_sessions}</span></td>
-                    <td><span style="color: #10B981; font-weight: 700;">${s.currently_parked}</span></td>
-                    <td><strong style="color: #059669;">${s.total_revenue}</strong></td>
+                    <td><span style="color: #EA580C; font-weight: 700;">${s.completed_sessions}</span></td>
+                    <td><span style="color: var(--emerald); font-weight: 700;">${s.currently_parked}</span></td>
+                    <td><strong style="color: var(--emerald);">${s.total_revenue}</strong></td>
                     <td>${s.duration}</td>
                 </tr>
             `).join('');
         } else {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-tertiary);">
+                    <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">
                         No ended sessions archived yet.
                     </td>
                 </tr>
@@ -1465,11 +1505,9 @@ function closeSessionHistoryModal() {
 }
 
 function printTicket(url) {
-    // Remove existing iframe if present
     let oldFrame = document.getElementById('hiddenPrintFrame');
     if (oldFrame) oldFrame.remove();
 
-    // Create a new iframe that is small so it doesn't stretch the print layout height
     let frame = document.createElement('iframe');
     frame.id = 'hiddenPrintFrame';
     frame.style.position = 'fixed';
@@ -1491,12 +1529,3 @@ function printTicket(url) {
 }
 </script>
 @endsection
-
-@section('additional-scripts')
-<script>
-    function viewDetails(id) {
-        alert('Gate Record #' + id + ' detail overview.');
-    }
-</script>
-@endsection
-

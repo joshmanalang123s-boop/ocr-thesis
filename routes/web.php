@@ -57,17 +57,28 @@ Route::middleware('auth')->group(function () {
     // Manual exit vehicle route (from dashboard/history table)
     Route::post("/plate-ocr/{id}/exit", [PlateOcrController::class, "exitVehicle"])->name("plate-ocr.exit");
 
+    // Correct plate number (Staff verification & audit)
+    Route::post("/plate-ocr/{id}/correct", [PlateOcrController::class, "correctPlate"])->name("plate-ocr.correct");
+
+    // Parking Rates Configuration & Audits (Admin only)
+    Route::get("/admin/parking-rates", [\App\Http\Controllers\ParkingFeeController::class, "index"])->name("parking-rates.index");
+    Route::get("/admin/parking-rates/json", [\App\Http\Controllers\ParkingFeeController::class, "getRatesJson"])->name("parking-rates.json");
+    Route::post("/admin/parking-rates", [\App\Http\Controllers\ParkingFeeController::class, "update"])->name("parking-rates.update");
+
     // Parking Session Management (End Session & Archives)
     Route::post("/parking-session/end", [PlateOcrController::class, "endSession"])->name("parking-session.end");
     Route::get("/parking-session/history", [PlateOcrController::class, "sessionHistory"])->name("parking-session.history");
 
-    // Analytics & Operational Reports
+    // Analytics & Cash Flow Reports
     Route::get("/analytics", [\App\Http\Controllers\AnalyticsController::class, "index"])->name("analytics");
+    Route::get("/cash-flow", [\App\Http\Controllers\AnalyticsController::class, "index"])->name("cash-flow");
     Route::get("/analytics/export", [\App\Http\Controllers\AnalyticsController::class, "exportCsv"])->name("analytics.export");
 
     // Settings Route
     Route::get("/settings", function () {
-        return view("settings");
+        $activeRate = \App\Models\ParkingRate::getActiveRate();
+        $rateAudits = \App\Models\ParkingRateAudit::latest('created_at')->take(10)->get();
+        return view("settings", compact("activeRate", "rateAudits"));
     })->name("settings");
 
 });

@@ -59,9 +59,13 @@ def _load_models():
     # First CUDA call on a freshly loaded model pays a JIT/kernel-compile
     # tax (seconds, not ms). Pay it once here at startup instead of on
     # whichever real request happens to arrive first.
-    warmup_img = np.zeros((640, 640, 3), dtype=np.uint8)
-    yolo_model(warmup_img, device=device, verbose=False, conf=0.05)
-    logger.info("YOLO warmup complete.")
+    warmup_img = np.zeros((480, 480, 3), dtype=np.uint8)
+    yolo_model(warmup_img, device=device, verbose=False, conf=0.06, imgsz=480)
+    try:
+        ocr_recognizer.run(warmup_img[:100, :200])
+    except Exception:
+        pass
+    logger.info("YOLO & FastPlateOCR warmup complete.")
 
     return device, yolo_model, ocr_recognizer
 

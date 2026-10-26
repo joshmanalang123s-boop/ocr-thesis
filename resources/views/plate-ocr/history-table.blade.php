@@ -62,7 +62,7 @@
                             @else
                                 <div class="plate-thumbnail-container" title="Plate: {{ $entry->plate_number }}">
                                     <div class="plate-graphic-fallback">
-                                        <span class="plate-sub-text">AUTOTRACE</span>
+                                        <span class="plate-sub-text">SABINO</span>
                                         <span class="plate-main-text">{{ $entry->plate_number }}</span>
                                     </div>
                                 </div>

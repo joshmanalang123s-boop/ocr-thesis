@@ -1,17 +1,15 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - SABINO Parking Management</title>
 
-    <title>Login - Autotrace Parking Management System</title>
-
-    <!-- Fonts -->
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800&display=swap" rel="stylesheet" />
 
-    <!-- Remix Icon -->
+    <!-- Remix Icon (Outline Set) -->
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
 
     <style>
@@ -22,146 +20,79 @@
         }
 
         :root {
-            --primary-color: #2563EB;
-            --primary-dark: #1D4ED8;
-            --primary-light: #EFF6FF;
-            --accent-cyan: #0EA5E9;
-            --text-primary: #0F172A;
-            --text-secondary: #475569;
-            --text-muted: #94A3B8;
-            --bg-dark: #0B0F17;
-            --card-bg: rgba(15, 23, 42, 0.75);
-            --card-border: rgba(255, 255, 255, 0.12);
+            --primary-black: #111827;
+            --text-primary: #111827;
+            --text-secondary: #4B5563;
+            --text-muted: #9CA3AF;
+            --bg-primary: #FFFFFF;
+            --border-color: #E5E7EB;
+            --status-green: #10B981;
         }
 
         body {
             font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
-            background-color: var(--bg-dark);
-            color: #F8FAFC;
+            background: #FAFAFA;
+            color: var(--text-primary);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            position: relative;
-            overflow-x: hidden;
             padding: 1.5rem;
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* Ambient Glow Background Effects */
-        .ambient-bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 0;
-            pointer-events: none;
-            overflow: hidden;
-        }
-
-        .glow-1 {
-            position: absolute;
-            top: -10%;
-            left: -10%;
-            width: 55vw;
-            height: 55vw;
-            background: radial-gradient(circle, rgba(37, 99, 235, 0.25) 0%, rgba(0, 0, 0, 0) 70%);
-            border-radius: 50%;
-            filter: blur(60px);
-            animation: pulseGlow 8s infinite alternate ease-in-out;
-        }
-
-        .glow-2 {
-            position: absolute;
-            bottom: -10%;
-            right: -10%;
-            width: 50vw;
-            height: 50vw;
-            background: radial-gradient(circle, rgba(14, 165, 233, 0.2) 0%, rgba(0, 0, 0, 0) 70%);
-            border-radius: 50%;
-            filter: blur(70px);
-            animation: pulseGlow 10s infinite alternate-reverse ease-in-out;
-        }
-
-        .grid-overlay {
-            position: absolute;
-            inset: 0;
-            background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-                              linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-            background-size: 40px 40px;
-            opacity: 0.8;
-        }
-
-        @keyframes pulseGlow {
-            0% { transform: scale(1) translate(0, 0); opacity: 0.7; }
-            100% { transform: scale(1.1) translate(20px, 20px); opacity: 1; }
-        }
-
-        /* Container & Card */
         .login-container {
-            position: relative;
-            z-index: 10;
             width: 100%;
-            max-width: 440px;
+            max-width: 400px;
         }
 
         .login-card {
-            background: rgba(15, 23, 42, 0.82);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--card-border);
-            border-radius: 20px;
-            padding: 2.5rem 2.25rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6),
-                        0 0 0 1px rgba(255, 255, 255, 0.05);
-            transition: all 0.3s ease;
+            background: #FFFFFF;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 2.25rem 2rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
         }
 
-        /* Header Section */
         .brand-header {
             text-align: center;
-            margin-bottom: 2rem;
+            margin-bottom: 1.75rem;
         }
 
-        .brand-logo {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 56px;
-            height: 56px;
-            background: linear-gradient(135deg, #2563EB 0%, #0EA5E9 100%);
-            border-radius: 14px;
-            font-size: 1.85rem;
-            color: white;
-            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
-            margin-bottom: 1rem;
+        .brand-logo-img {
+            width: 64px;
+            height: 64px;
+            object-fit: contain;
+            margin-bottom: 0.65rem;
         }
 
         .brand-name {
-            font-size: 1.5rem;
+            font-size: 1.35rem;
             font-weight: 800;
-            color: #FFFFFF;
-            letter-spacing: -0.02em;
+            color: #111827;
+            letter-spacing: -0.01em;
+            line-height: 1.1;
         }
 
         .brand-subtitle {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            margin-top: 0.35rem;
-            font-weight: 400;
+            font-size: 0.6875rem;
+            color: #6B7280;
+            margin-top: 0.25rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
         }
 
-        /* Form Controls */
         .form-group {
-            margin-bottom: 1.35rem;
+            margin-bottom: 1.15rem;
         }
 
         .form-label {
             display: block;
             font-size: 0.8125rem;
             font-weight: 600;
-            color: #E2E8F0;
-            margin-bottom: 0.5rem;
+            color: #374151;
+            margin-bottom: 0.45rem;
         }
 
         .input-wrapper {
@@ -172,183 +103,130 @@
 
         .input-icon {
             position: absolute;
-            left: 1rem;
-            color: #64748B;
-            font-size: 1.15rem;
+            left: 0.85rem;
+            color: #9CA3AF;
+            font-size: 1.1rem;
             pointer-events: none;
-            transition: color 0.2s ease;
         }
 
         .form-input {
             width: 100%;
-            padding: 0.75rem 1rem 0.75rem 2.75rem;
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 10px;
-            color: #FFFFFF;
-            font-size: 0.9375rem;
+            padding: 0.65rem 0.85rem 0.65rem 2.5rem;
+            background: #FFFFFF;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: #111827;
+            font-size: 0.875rem;
             font-family: inherit;
             outline: none;
-            transition: all 0.2s ease;
+            transition: border-color 0.15s ease;
         }
 
         .form-input::placeholder {
-            color: #475569;
+            color: #9CA3AF;
         }
 
         .form-input:focus {
-            border-color: #3B82F6;
-            background: rgba(15, 23, 42, 0.85);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
-        }
-
-        .form-input:focus + .input-icon,
-        .input-wrapper:focus-within .input-icon {
-            color: #3B82F6;
+            border-color: #111827;
         }
 
         .password-toggle {
             position: absolute;
-            right: 1rem;
+            right: 0.85rem;
             background: none;
             border: none;
-            color: #64748B;
-            font-size: 1.15rem;
+            color: #9CA3AF;
+            font-size: 1.1rem;
             cursor: pointer;
             padding: 0;
             display: flex;
             align-items: center;
-            transition: color 0.2s ease;
         }
 
         .password-toggle:hover {
-            color: #94A3B8;
+            color: #111827;
         }
 
-        /* Row options */
         .form-options {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.25rem;
             font-size: 0.8125rem;
         }
 
         .remember-label {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            color: #94A3B8;
+            gap: 0.45rem;
+            color: #4B5563;
             cursor: pointer;
             user-select: none;
         }
 
         .remember-checkbox {
-            appearance: none;
-            width: 16px;
-            height: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            width: 15px;
+            height: 15px;
+            border: 1px solid var(--border-color);
             border-radius: 4px;
-            background: rgba(15, 23, 42, 0.6);
             cursor: pointer;
-            display: grid;
-            place-content: center;
-            transition: all 0.2s ease;
         }
 
-        .remember-checkbox::before {
-            content: "\EB7B";
-            font-family: 'remixicon';
-            font-size: 0.75rem;
-            color: white;
-            transform: scale(0);
-            transition: transform 0.15s ease-in-out;
-        }
-
-        .remember-checkbox:checked {
-            background: var(--primary-color);
-            border-color: var(--primary-color);
-        }
-
-        .remember-checkbox:checked::before {
-            transform: scale(1);
-        }
-
-        /* Alert styling */
         .alert {
-            padding: 0.75rem 1rem;
-            border-radius: 10px;
-            margin-bottom: 1.25rem;
+            padding: 0.65rem 0.85rem;
+            border-radius: 6px;
+            margin-bottom: 1.15rem;
             display: flex;
             align-items: flex-start;
-            gap: 0.65rem;
-            font-size: 0.85rem;
+            gap: 0.5rem;
+            font-size: 0.8125rem;
             line-height: 1.4;
-            animation: shake 0.4s ease-in-out;
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            20%, 60% { transform: translateX(-6px); }
-            40%, 80% { transform: translateX(6px); }
         }
 
         .alert-error {
-            background: rgba(239, 68, 68, 0.15);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            color: #FCA5A5;
+            background: #FEF2F2;
+            border: 1px solid #FCA5A5;
+            color: #B91C1C;
         }
 
         .alert-success {
-            background: rgba(16, 185, 129, 0.15);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            color: #6EE7B7;
+            background: #F0FDF4;
+            border: 1px solid #86EFAC;
+            color: #15803D;
         }
 
-        /* Submit Button */
         .btn-login {
             width: 100%;
-            padding: 0.85rem 1.25rem;
-            background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+            padding: 0.7rem 1.25rem;
+            background: #111827;
             color: #FFFFFF;
-            border: none;
-            border-radius: 10px;
-            font-size: 0.95rem;
-            font-weight: 700;
+            border: 1px solid #111827;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 600;
             font-family: inherit;
             cursor: pointer;
-            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
-            transition: all 0.25 ease;
+            transition: background 0.15s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
+            gap: 0.45rem;
         }
 
         .btn-login:hover {
-            background: linear-gradient(135deg, #1D4ED8 0%, #1E40AF 100%);
-            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.55);
-            transform: translateY(-1px);
+            background: #000000;
+            border-color: #000000;
         }
 
-        .btn-login:active {
-            transform: translateY(0);
-        }
-
-        .btn-login i {
-            font-size: 1.1rem;
-        }
-
-        /* Footer Status Pill */
         .system-status-footer {
-            margin-top: 1.75rem;
+            margin-top: 1.5rem;
             text-align: center;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
+            gap: 0.45rem;
             font-size: 0.75rem;
-            color: #64748B;
+            color: #6B7280;
         }
 
         .status-dot {
@@ -356,51 +234,33 @@
             height: 7px;
             background: #10B981;
             border-radius: 50%;
-            box-shadow: 0 0 8px #10B981;
-            animation: statusPulse 2s infinite;
-        }
-
-        @keyframes statusPulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.3; }
-            100% { opacity: 1; }
+            flex-shrink: 0;
         }
     </style>
 </head>
 <body>
 
-    <!-- Ambient Glow Background -->
-    <div class="ambient-bg">
-        <div class="glow-1"></div>
-        <div class="glow-2"></div>
-        <div class="grid-overlay"></div>
-    </div>
-
-    <!-- Login Container -->
     <div class="login-container">
         <div class="login-card">
 
             <!-- Brand Header -->
             <div class="brand-header">
-                <div class="brand-logo">
-                    <i class="ri-parking-box-line"></i>
-                </div>
-                <h1 class="brand-name">Autotrace System</h1>
-                <p class="brand-subtitle">License Plate Recognition & Gate Control</p>
+                <img src="{{ asset('images/sabino-logo.png') }}" alt="SABINO Logo" class="brand-logo-img">
+                <h1 class="brand-name">SABINO</h1>
+                <p class="brand-subtitle">PARKING MANAGEMENT</p>
             </div>
-
 
             <!-- Validation & Session Flash Messages -->
             @if (session('success'))
                 <div class="alert alert-success">
-                    <i class="ri-checkbox-circle-fill"></i>
+                    <i class="ri-checkbox-circle-line"></i>
                     <span>{{ session('success') }}</span>
                 </div>
             @endif
 
             @if ($errors->any())
                 <div class="alert alert-error">
-                    <i class="ri-error-warning-fill"></i>
+                    <i class="ri-error-warning-line"></i>
                     <div>
                         @foreach ($errors->all() as $error)
                             <div>{{ $error }}</div>
@@ -422,12 +282,12 @@
                             id="loginInput"
                             name="login"
                             class="form-input"
-                            placeholder="Enter 'admin'"
+                            placeholder="Enter username or email"
                             value="{{ old('login', 'admin') }}"
                             required
                             autofocus
                         />
-                        <i class="ri-user-3-line input-icon"></i>
+                        <i class="ri-user-line input-icon"></i>
                     </div>
                 </div>
 
@@ -443,7 +303,7 @@
                             placeholder="Enter password"
                             required
                         />
-                        <i class="ri-lock-password-line input-icon"></i>
+                        <i class="ri-lock-line input-icon"></i>
                         <button type="button" class="password-toggle" onclick="togglePasswordVisibility()" aria-label="Toggle Password Visibility">
                             <i class="ri-eye-line" id="eyeIcon"></i>
                         </button>
@@ -468,7 +328,7 @@
             <!-- Footer Status -->
             <div class="system-status-footer">
                 <span class="status-dot"></span>
-                <span>Gate Systems Operational &bull; Version 2.0</span>
+                <span>Gates Operational</span>
             </div>
 
         </div>
@@ -486,7 +346,6 @@
                 eyeIcon.className = 'ri-eye-line';
             }
         }
-
 
         document.getElementById('loginForm').addEventListener('submit', function() {
             const btn = document.getElementById('btnLogin');

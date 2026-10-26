@@ -49,11 +49,11 @@
             </div>
 
             <div style="text-align: center; font-size: 12px; margin-bottom: 4px;">
-                TIME IN: {{ $entry->entry_time ? $entry->entry_time->format('M d, Y h:i A') : 'N/A' }}
+                TIME IN: {{ $entry->entry_time ? $entry->entry_time->timezone('Asia/Manila')->format('M d, Y h:i A') : 'N/A' }}
             </div>
 
             <div style="text-align: center; font-size: 12px; margin-bottom: 4px;">
-                TIME OUT: {{ $entry->exit_time ? $entry->exit_time->format('M d, Y h:i A') : 'N/A' }}
+                TIME OUT: {{ $entry->exit_time ? $entry->exit_time->timezone('Asia/Manila')->format('M d, Y h:i A') : 'N/A' }}
             </div>
 
             <div style="text-align: center; font-size: 12px; margin-bottom: 8px; font-weight: bold;">
@@ -66,7 +66,7 @@
 
             <div style="text-align: center; font-size: 10px;">
                 <div>THANK YOU FOR PARKING!</div>
-                <div>AUTOTRACE PARKING</div>
+                <div>SABINO PARKING</div>
             </div>
         @else
             <!-- ENTRY RECEIPT -->
@@ -80,12 +80,12 @@
             </div>
 
             <div style="text-align: center; font-size: 12px; margin-bottom: 6px;">
-                TIME IN: {{ $entry->entry_time ? $entry->entry_time->format('M d, Y h:i A') : 'N/A' }}
+                TIME IN: {{ $entry->entry_time ? $entry->entry_time->timezone('Asia/Manila')->format('M d, Y h:i A') : 'N/A' }}
             </div>
 
             <div style="text-align: center; font-size: 10px; border-top: 1px dashed #000; padding-top: 8px; margin-top: 8px;">
                 <div>KEEP TICKET UNTIL CHECKOUT</div>
-                <div>AUTOTRACE PARKING</div>
+                <div>SABINO PARKING</div>
             </div>
         @endif
     </div>

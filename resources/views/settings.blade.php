@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Settings - Plate QR System')
-@section('page-title', 'Settings')
+@section('title', 'Gate Settings - SABINO')
+@section('page-title', 'Gate Settings')
 
 @section('additional-styles')
 <style>
@@ -302,7 +302,11 @@
 <div class="settings-grid">
     <!-- Settings Navigation -->
     <nav class="settings-nav">
-        <a href="#general" class="settings-nav-item active">
+        <a href="#parking-rates" class="settings-nav-item active">
+            <i class="ri-money-dollar-circle-line" style="color: #2563EB;"></i>
+            <span>Parking Rates</span>
+        </a>
+        <a href="#general" class="settings-nav-item">
             <i class="ri-settings-2-line"></i>
             <span>General</span>
         </a>
@@ -326,6 +330,104 @@
 
     <!-- Settings Content -->
     <div class="settings-content">
+        <!-- Parking Rates & Billing Section -->
+        <div class="settings-section" id="parking-rates">
+            <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h2><i class="ri-money-dollar-circle-line" style="color: #2563EB;"></i> Parking Fee Rates & Grace Period</h2>
+                    <p>Configure facility fee schedules, mandatory 15-minute grace period, and succeeding hourly charges</p>
+                </div>
+                <button type="button" class="btn btn-primary" onclick="openChangeFeeModal()" style="display: inline-flex; align-items: center; gap: 0.5rem; background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%); padding: 0.65rem 1.25rem; font-weight: 700;">
+                    <i class="ri-edit-2-line"></i>
+                    <span>Change Parking Fee</span>
+                </button>
+            </div>
+            <div class="section-body">
+                <!-- Mandatory 15-Minute Free Grace Banner -->
+                <div style="background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%); border: 1.5px solid #10B981; border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: flex; align-items: flex-start; gap: 0.85rem;">
+                    <span style="background: #047857; color: white; padding: 0.25rem 0.6rem; border-radius: 6px; font-size: 0.65rem; font-weight: 800; letter-spacing: 0.05em;">RULE GUARANTEE</span>
+                    <div>
+                        <strong style="color: #065F46; font-size: 0.925rem; display: block; margin-bottom: 0.2rem;">Mandatory 15-Minute Free Parking Grace Period</strong>
+                        <p style="color: #047857; font-size: 0.825rem; margin: 0; line-height: 1.4;">
+                            Vehicles exiting in 15 minutes or less are automatically assessed <strong>₱0.00 (FREE)</strong>. Vehicles that exit after 15 minutes are charged according to configured rates below.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Current Rate Cards Grid -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                    <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 1rem;">
+                        <span style="font-size: 0.75rem; font-weight: 700; color: #64748B; text-transform: uppercase;">Standard Base Rate</span>
+                        <div style="font-size: 1.5rem; font-weight: 800; color: #1E293B; margin-top: 0.25rem;">₱{{ number_format($activeRate->base_rate ?? 50, 2) }}</div>
+                        <span style="font-size: 0.75rem; color: #94A3B8;">Covers first {{ $activeRate->base_hours ?? 3 }} hours</span>
+                    </div>
+
+                    <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 1rem;">
+                        <span style="font-size: 0.75rem; font-weight: 700; color: #64748B; text-transform: uppercase;">Succeeding Hourly Rate</span>
+                        <div style="font-size: 1.5rem; font-weight: 800; color: #2563EB; margin-top: 0.25rem;">+₱{{ number_format($activeRate->hourly_rate ?? 20, 2) }}</div>
+                        <span style="font-size: 0.75rem; color: #94A3B8;">Per succeeding hour or fraction</span>
+                    </div>
+
+                    <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 1rem;">
+                        <span style="font-size: 0.75rem; font-weight: 700; color: #64748B; text-transform: uppercase;">Motorcycle Rate</span>
+                        <div style="font-size: 1.5rem; font-weight: 800; color: #059669; margin-top: 0.25rem;">₱{{ number_format($activeRate->motorcycle_base_rate ?? 30, 2) }}</div>
+                        <span style="font-size: 0.75rem; color: #94A3B8;">Base / +₱{{ number_format($activeRate->motorcycle_hourly_rate ?? 15, 2) }}/h</span>
+                    </div>
+
+                    <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 1rem;">
+                        <span style="font-size: 0.75rem; font-weight: 700; color: #64748B; text-transform: uppercase;">Truck / Heavy Rate</span>
+                        <div style="font-size: 1.5rem; font-weight: 800; color: #D97706; margin-top: 0.25rem;">₱{{ number_format($activeRate->truck_base_rate ?? 80, 2) }}</div>
+                        <span style="font-size: 0.75rem; color: #94A3B8;">Base / +₱{{ number_format($activeRate->truck_hourly_rate ?? 30, 2) }}/h</span>
+                    </div>
+                </div>
+
+                <!-- Recent Audit Log Table -->
+                <div style="border-top: 1px solid #E2E8F0; padding-top: 1.25rem;">
+                    <h3 style="font-size: 0.95rem; font-weight: 700; color: #0F172A; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
+                        <i class="ri-history-line" style="color: #64748B;"></i> Rate Modification Audit Trail
+                    </h3>
+                    @if(isset($rateAudits) && $rateAudits->count() > 0)
+                        <div style="overflow-x: auto;">
+                            <table class="data-table" style="font-size: 0.8rem;">
+                                <thead>
+                                    <tr>
+                                        <th>Date & Time</th>
+                                        <th>Administrator</th>
+                                        <th>Previous Rates</th>
+                                        <th>Updated Rates</th>
+                                        <th>Reason / Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($rateAudits as $audit)
+                                        <tr>
+                                            <td style="white-space: nowrap;">{{ $audit->created_at->format('M d, Y • h:i A') }}</td>
+                                            <td><strong>{{ $audit->user_name }}</strong></td>
+                                            <td>
+                                                @if($audit->previous_rates)
+                                                    Base: ₱{{ number_format($audit->previous_rates['base_rate'] ?? 0, 2) }} | Hourly: ₱{{ number_format($audit->previous_rates['hourly_rate'] ?? 0, 2) }}
+                                                @else
+                                                    —
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <strong style="color: #2563EB;">
+                                                    Base: ₱{{ number_format($audit->new_rates['base_rate'] ?? 0, 2) }} | Hourly: ₱{{ number_format($audit->new_rates['hourly_rate'] ?? 0, 2) }}
+                                                </strong>
+                                            </td>
+                                            <td style="color: #64748B;">{{ $audit->reason ?: 'Configuration update' }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <p style="font-size: 0.8125rem; color: #94A3B8;">Standard rates active. No manual rate modifications logged yet.</p>
+                    @endif
+                </div>
+            </div>
+        </div>
+
         <!-- General Settings -->
         <div class="settings-section" id="general">
             <div class="section-header">
@@ -650,4 +752,6 @@
         observer.observe(section);
     });
 </script>
+
+@include('partials.change-fee-modal')
 @endsection

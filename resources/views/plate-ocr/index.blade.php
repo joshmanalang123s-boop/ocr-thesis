@@ -514,7 +514,7 @@ class AutoEntryScanner {
         this.isPendingRequest = false;
 
         // Timing
-        this.scanIntervalMs = 1200; // scan every 1.2 seconds for responsive detection
+        this.scanIntervalMs = 400;  // scan every 400ms for near-instant detection
         this.cooldownMs = 4000;     // 4s cooldown after successful detection
         this.scanTimer = null;
         this.cooldownUntil = 0;
@@ -623,13 +623,15 @@ class AutoEntryScanner {
         this.updateStats();
 
         try {
-            // Capture frame cleanly from live video (natural orientation)
-            this.canvas.width = this.video.videoWidth;
-            this.canvas.height = this.video.videoHeight;
+            // Capture frame cleanly with max width 960 for fast transmission & processing
+            const maxW = 960;
+            const scale = Math.min(1, maxW / this.video.videoWidth);
+            this.canvas.width = Math.round(this.video.videoWidth * scale);
+            this.canvas.height = Math.round(this.video.videoHeight * scale);
             const ctx = this.canvas.getContext('2d');
             ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
 
-            const frameData = this.canvas.toDataURL('image/jpeg', 0.88);
+            const frameData = this.canvas.toDataURL('image/jpeg', 0.80);
 
             // Send to API
             const response = await fetch(this.apiUrl, {

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Dual Live Cameras - Autotrace')
+@section('title', 'Dual Live Cameras - SABINO')
 @section('page-title', 'Dual Live Gate Cameras')
 
 @section('additional-styles')
@@ -697,8 +697,8 @@ class GateCameraScanner {
         this.isAutoScanEnabled = true;
         this.isPendingRequest = false;
 
-        this.scanIntervalMs = 2000;
-        this.cooldownMs = 5000;
+        this.scanIntervalMs = 500;  // scan every 500ms for fast dual gate detection
+        this.cooldownMs = 4000;
         this.scanTimer = null;
         this.cooldownUntil = 0;
 
@@ -808,12 +808,14 @@ class GateCameraScanner {
         DualStats.addScan();
 
         try {
-            this.canvas.width = this.video.videoWidth;
-            this.canvas.height = this.video.videoHeight;
+            const maxW = 960;
+            const scale = Math.min(1, maxW / this.video.videoWidth);
+            this.canvas.width = Math.round(this.video.videoWidth * scale);
+            this.canvas.height = Math.round(this.video.videoHeight * scale);
             const ctx = this.canvas.getContext('2d');
             ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
 
-            const frameData = this.canvas.toDataURL('image/jpeg', 0.88);
+            const frameData = this.canvas.toDataURL('image/jpeg', 0.80);
 
             const response = await fetch(this.apiUrl, {
                 method: 'POST',
@@ -841,7 +843,7 @@ class GateCameraScanner {
                         this.updateStatusBox('found-entry', `✓ Entry recorded: ${result.plate} (${result.confidence}%)`);
                     } else {
                         DualStats.addExit(result);
-                        this.updateStatusBox('found-exit', `✓ Exit recorded: ${result.plate} — Fee: ${result.formatted_fee || '₱5.00'}`);
+                        this.updateStatusBox('found-exit', `✓ Exit recorded: ${result.plate} — Fee: ${result.formatted_fee || '₱50.00'}`);
                     }
 
                     this.cooldownUntil = Date.now() + this.cooldownMs;

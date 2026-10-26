@@ -327,12 +327,13 @@
     /* Stats Row */
     .stats-row {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(4, 1fr);
         gap: 1rem;
         margin-bottom: 1.5rem;
     }
 
-    @media (max-width: 768px) { .stats-row { grid-template-columns: 1fr; } }
+    @media (max-width: 900px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 500px) { .stats-row { grid-template-columns: 1fr; } }
 
     .stat-card {
         background: var(--bg-secondary);
@@ -389,6 +390,20 @@
     <p>Automated license plate detection — exiting vehicles are scanned, matched, and fees calculated automatically</p>
 </div>
 
+<!-- Mandatory 15-Minute Free Grace Banner Guarantee -->
+<div style="background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%); border: 1.5px solid #10B981; border-radius: 12px; padding: 0.85rem 1.25rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <i class="ri-shield-check-fill" style="font-size: 1.5rem; color: #059669;"></i>
+        <div>
+            <strong style="color: #065F46; font-size: 0.95rem;">Mandatory 15-Minute Free Parking Grace Rule Enforced</strong>
+            <p style="margin: 0; font-size: 0.825rem; color: #047857;">
+                Vehicles exiting in 15 minutes or less are automatically charged <strong>₱0.00 (FREE)</strong>. Duration over 15 minutes is billed at standard facility tariff.
+            </p>
+        </div>
+    </div>
+    <span style="background: #047857; color: white; padding: 0.25rem 0.65rem; border-radius: 6px; font-size: 0.725rem; font-weight: 800; letter-spacing: 0.05em;">RULE GUARANTEE</span>
+</div>
+
 <!-- Detection Status -->
 <div class="detection-status idle" id="detectionStatus">
     <i class="ri-radar-line"></i>
@@ -409,6 +424,13 @@
         <div>
             <div class="stat-value" id="statDetected">0</div>
             <div class="stat-label">Exits Processed</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon free" style="background: #ECFDF5; color: #059669;"><i class="ri-gift-line"></i></div>
+        <div>
+            <div class="stat-value" id="statFree" style="color: #059669;">0</div>
+            <div class="stat-label">15m Free Exits</div>
         </div>
     </div>
     <div class="stat-card">
@@ -479,12 +501,12 @@ class AutoExitScanner {
         this.isAutoScanEnabled = true;
         this.isPendingRequest = false;
 
-        this.scanIntervalMs = 1200; // scan every 1.2s
+        this.scanIntervalMs = 400;  // scan every 400ms for near-instant detection
         this.cooldownMs = 4000;
         this.scanTimer = null;
         this.cooldownUntil = 0;
 
-        this.stats = { scans: 0, detected: 0, skipped: 0 };
+        this.stats = { scans: 0, detected: 0, skipped: 0, free: 0 };
         this.logEntries = [];
 
         this.init();
@@ -499,7 +521,7 @@ class AutoExitScanner {
     async startCamera() {
         try {
             const constraints = {
-                video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+                video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
                 audio: false
             };
             this.stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -567,12 +589,14 @@ class AutoExitScanner {
         this.updateStats();
 
         try {
-            this.canvas.width = this.video.videoWidth;
-            this.canvas.height = this.video.videoHeight;
+            const maxW = 960;
+            const scale = Math.min(1, maxW / this.video.videoWidth);
+            this.canvas.width = Math.round(this.video.videoWidth * scale);
+            this.canvas.height = Math.round(this.video.videoHeight * scale);
             const ctx = this.canvas.getContext('2d');
             ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
 
-            const frameData = this.canvas.toDataURL('image/jpeg', 0.88);
+            const frameData = this.canvas.toDataURL('image/jpeg', 0.80);
 
             const response = await fetch(this.apiUrl, {
                 method: 'POST',
@@ -597,6 +621,9 @@ class AutoExitScanner {
                     this.setCameraDot('active');
                 } else {
                     this.stats.detected++;
+                    if (result.parking_fee <= 0 || (result.duration_minutes !== undefined && result.duration_minutes <= 15)) {
+                        this.stats.free++;
+                    }
                     this.updateStats();
                     this.addLogEntry(result);
 
@@ -635,7 +662,7 @@ class AutoExitScanner {
         const iconClass = result.is_match_found ? 'exit-matched' : 'exit';
         const iconName = result.is_match_found ? 'ri-checkbox-circle-fill' : 'ri-logout-box-r-fill';
         const durationText = result.duration || 'N/A';
-        const feeText = result.formatted_fee || '₱5.00';
+        const feeText = result.formatted_fee || '₱50.00';
         const metaText = result.is_match_found
             ? ` • Matched ${result.entry_gate || 'Entry'} • Duration: ${durationText}`
             : ' • No matching entry';
@@ -665,6 +692,8 @@ class AutoExitScanner {
     updateStats() {
         document.getElementById('statScans').textContent = this.stats.scans;
         document.getElementById('statDetected').textContent = this.stats.detected;
+        const freeEl = document.getElementById('statFree');
+        if (freeEl) freeEl.textContent = this.stats.free;
         document.getElementById('statSkipped').textContent = this.stats.skipped;
     }
 

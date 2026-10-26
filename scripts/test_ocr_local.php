@@ -10,9 +10,15 @@ $reflection = new \ReflectionClass($controller);
 $method = $reflection->getMethod('processPlateImage');
 $method->setAccessible(true);
 
-$imagePath = storage_path('app/public/plates/1785437156_exit_plate_6a6b9be421963.jpg');
-echo "Testing plate detection for: $imagePath\n";
+$images = [
+    'Green Plate 1' => storage_path('app/public/plates/1791420446_auto_entry_6ac6e81e43948.jpg'),
+    'Green Plate 2' => storage_path('app/public/plates/1791420576_auto_entry_6ac6e8a0cf86a.jpg'),
+    'White Plate'   => storage_path('app/public/plates/1791348644_auto_entry_6ac5cfa47afd2.jpg'),
+];
 
-$result = $method->invoke($controller, $imagePath);
-echo "Result:\n";
-print_r($result);
+foreach ($images as $label => $imagePath) {
+    echo "\n====================\nTesting $label ($imagePath)\n";
+    $result = $method->invoke($controller, $imagePath);
+    echo "Plate: " . ($result['plate_text'] ?? 'FAILED') . " | Conf: " . ($result['confidence'] ?? 0) . "%\n";
+    echo "Crop: " . ($result['cropped_path'] ?? 'none') . "\n";
+}

@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Analytics & Reports - Autotrace')
-@section('page-title', 'Analytics & Operational Intelligence')
+@section('title', 'Cash Flow & Analytics - SABINO')
+@section('page-title', 'Cash Flow & Operational Analytics')
 
 @section('additional-styles')
 <style>
@@ -29,7 +29,7 @@
         top: -60px;
         width: 280px;
         height: 280px;
-        background: radial-gradient(circle, rgba(139, 92, 246, 0.22) 0%, rgba(0, 0, 0, 0) 70%);
+        background: radial-gradient(circle, rgba(16, 185, 129, 0.22) 0%, rgba(0, 0, 0, 0) 70%);
         pointer-events: none;
     }
 
@@ -46,6 +46,7 @@
     .hero-content p {
         color: #94A3B8;
         font-size: 0.875rem;
+        margin: 0;
     }
 
     .hero-actions {
@@ -71,13 +72,24 @@
     }
 
     .btn-report-action.primary {
-        background: #8B5CF6;
+        background: #10B981;
         color: white;
-        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
     }
 
     .btn-report-action.primary:hover {
-        background: #7C3AED;
+        background: #059669;
+        transform: translateY(-1px);
+    }
+
+    .btn-report-action.blue {
+        background: #2563EB;
+        color: white;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    .btn-report-action.blue:hover {
+        background: #1D4ED8;
         transform: translateY(-1px);
     }
 
@@ -91,6 +103,31 @@
     .btn-report-action.secondary:hover {
         background: rgba(255, 255, 255, 0.18);
         transform: translateY(-1px);
+    }
+
+    /* Grace Rule Guarantee Alert */
+    .grace-guarantee-alert {
+        background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
+        border: 1.5px solid #10B981;
+        border-radius: 12px;
+        padding: 0.85rem 1.25rem;
+        margin-bottom: 1.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .grace-guarantee-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .grace-guarantee-info i {
+        font-size: 1.5rem;
+        color: #059669;
     }
 
     /* Filter Bar */
@@ -135,10 +172,10 @@
     }
 
     .filter-pill.active {
-        background: #8B5CF6;
+        background: #2563EB;
         color: white;
         font-weight: 700;
-        box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
     }
 
     .custom-date-form {
@@ -148,7 +185,7 @@
     }
 
     .date-input {
-        padding: 0.4rem 0.65rem;
+        padding: 0.45rem 0.75rem;
         border-radius: 8px;
         border: 1px solid var(--border-color);
         background: var(--bg-primary);
@@ -157,22 +194,19 @@
         font-weight: 500;
     }
 
-    /* KPI Cards Grid */
-    .kpi-grid {
+    /* 7 Summary KPI Cards Grid */
+    .kpi-grid-7 {
         display: grid;
-        grid-template-columns: repeat(6, 1fr);
+        grid-template-columns: repeat(4, 1fr);
         gap: 1.25rem;
         margin-bottom: 2rem;
     }
 
-    @media (max-width: 1400px) {
-        .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+    @media (max-width: 1200px) {
+        .kpi-grid-7 { grid-template-columns: repeat(2, 1fr); }
     }
-    @media (max-width: 900px) {
-        .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-    }
-    @media (max-width: 600px) {
-        .kpi-grid { grid-template-columns: 1fr; }
+    @media (max-width: 640px) {
+        .kpi-grid-7 { grid-template-columns: 1fr; }
     }
 
     .kpi-card {
@@ -203,12 +237,12 @@
         height: 3px;
     }
 
-    .kpi-card.purple::before { background: #8B5CF6; }
-    .kpi-card.green::before { background: #10B981; }
     .kpi-card.blue::before { background: #3B82F6; }
-    .kpi-card.orange::before { background: #F97316; }
-    .kpi-card.cyan::before { background: #06B6D4; }
+    .kpi-card.emerald::before { background: #10B981; }
+    .kpi-card.purple::before { background: #8B5CF6; }
     .kpi-card.amber::before { background: #F59E0B; }
+    .kpi-card.cyan::before { background: #06B6D4; }
+    .kpi-card.slate::before { background: #64748B; }
 
     .kpi-header {
         display: flex;
@@ -235,15 +269,15 @@
         font-size: 1.15rem;
     }
 
-    .kpi-icon.purple { background: #F5F3FF; color: #8B5CF6; }
-    .kpi-icon.green { background: #ECFDF5; color: #10B981; }
     .kpi-icon.blue { background: #EFF6FF; color: #3B82F6; }
-    .kpi-icon.orange { background: #FFF7ED; color: #F97316; }
-    .kpi-icon.cyan { background: #ECFEFF; color: #06B6D4; }
+    .kpi-icon.emerald { background: #ECFDF5; color: #10B981; }
+    .kpi-icon.purple { background: #F5F3FF; color: #8B5CF6; }
     .kpi-icon.amber { background: #FEF3C7; color: #D97706; }
+    .kpi-icon.cyan { background: #ECFEFF; color: #06B6D4; }
+    .kpi-icon.slate { background: #F1F5F9; color: #64748B; }
 
     .kpi-value {
-        font-size: 1.5rem;
+        font-size: 1.55rem;
         font-weight: 800;
         color: var(--text-primary);
         letter-spacing: -0.02em;
@@ -252,7 +286,7 @@
     }
 
     .kpi-sub {
-        font-size: 0.725rem;
+        font-size: 0.75rem;
         color: var(--text-secondary);
         display: flex;
         align-items: center;
@@ -269,17 +303,6 @@
 
     @media (max-width: 1024px) {
         .charts-grid-2 { grid-template-columns: 1fr; }
-    }
-
-    .charts-grid-3 {
-        display: grid;
-        grid-template-columns: 1.5fr 1fr 1fr;
-        gap: 1.5rem;
-        margin-bottom: 2rem;
-    }
-
-    @media (max-width: 1200px) {
-        .charts-grid-3 { grid-template-columns: 1fr; }
     }
 
     .chart-card {
@@ -310,20 +333,57 @@
         gap: 0.5rem;
     }
 
-    .chart-badge {
-        font-size: 0.725rem;
-        font-weight: 700;
-        padding: 0.2rem 0.6rem;
-        border-radius: 12px;
-        background: #F1F5F9;
-        color: var(--text-secondary);
-    }
-
     .chart-container {
         position: relative;
         width: 100%;
-        min-height: 280px;
+        min-height: 270px;
         flex: 1;
+    }
+
+    /* Report Tabs Navigation */
+    .report-tabs-nav {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        border-bottom: 2px solid var(--border-color);
+        margin-bottom: 1.5rem;
+        overflow-x: auto;
+        padding-bottom: 0.25rem;
+    }
+
+    .report-tab-btn {
+        background: none;
+        border: none;
+        padding: 0.75rem 1.25rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        border-bottom: 3px solid transparent;
+        margin-bottom: -0.25rem;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+    }
+
+    .report-tab-btn:hover {
+        color: var(--text-primary);
+    }
+
+    .report-tab-btn.active {
+        color: #2563EB;
+        border-bottom-color: #2563EB;
+        font-weight: 700;
+    }
+
+    .report-tab-panel {
+        display: none;
+    }
+
+    .report-tab-panel.active {
+        display: block;
     }
 
     /* Table Card */
@@ -347,18 +407,13 @@
     }
 
     .report-table-title h3 {
-        font-size: 1.1rem;
+        font-size: 1.05rem;
         font-weight: 800;
         color: var(--text-primary);
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        margin-bottom: 0.25rem;
-    }
-
-    .report-table-title p {
-        font-size: 0.8125rem;
-        color: var(--text-secondary);
+        margin-bottom: 0.2rem;
     }
 
     .report-table-wrap {
@@ -373,7 +428,7 @@
 
     .report-table th {
         background: #F8FAFC;
-        padding: 0.85rem 1.25rem;
+        padding: 0.85rem 1.15rem;
         text-align: left;
         font-weight: 700;
         font-size: 0.75rem;
@@ -384,7 +439,7 @@
     }
 
     .report-table td {
-        padding: 0.95rem 1.25rem;
+        padding: 0.9rem 1.15rem;
         border-bottom: 1px solid var(--border-color);
         color: var(--text-primary);
         vertical-align: middle;
@@ -394,27 +449,51 @@
         background: #F8FAFC;
     }
 
-    .rate-badge {
+    /* Free Grace Period Badge */
+    .grace-badge {
         display: inline-flex;
         align-items: center;
-        gap: 0.25rem;
+        gap: 0.35rem;
         padding: 0.25rem 0.6rem;
         border-radius: 6px;
-        font-weight: 700;
-        font-size: 0.75rem;
+        font-size: 0.725rem;
+        font-weight: 800;
+        background: #D1FAE5;
+        color: #065F46;
+        border: 1px solid #A7F3D0;
     }
 
-    .rate-badge.high { background: #ECFDF5; color: #059669; }
-    .rate-badge.medium { background: #EFF6FF; color: #2563EB; }
-    .rate-badge.low { background: #FFF7ED; color: #EA580C; }
+    .paid-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.25rem 0.6rem;
+        border-radius: 6px;
+        font-size: 0.725rem;
+        font-weight: 700;
+        background: #EFF6FF;
+        color: #1D4ED8;
+    }
+
+    .unpaid-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.25rem 0.6rem;
+        border-radius: 6px;
+        font-size: 0.725rem;
+        font-weight: 700;
+        background: #FEF3C7;
+        color: #B45309;
+    }
 
     /* Print Styles */
     @media print {
         body { background: white !important; color: black !important; }
-        .sidebar, .navbar, .analytics-hero::before, .filter-bar, .hero-actions { display: none !important; }
+        .sidebar, .navbar, .analytics-hero::before, .filter-bar, .hero-actions, .report-tabs-nav { display: none !important; }
         .main-content { margin: 0 !important; padding: 0 !important; width: 100% !important; }
         .kpi-card, .chart-card, .report-table-card { box-shadow: none !important; border: 1px solid #ccc !important; }
-        .page-header h1 { font-size: 1.5rem !important; }
+        .report-tab-panel { display: block !important; margin-bottom: 2rem !important; }
     }
 </style>
 @endsection
@@ -424,12 +503,16 @@
 <div class="analytics-hero">
     <div class="hero-content">
         <h1>
-            <i class="ri-bar-chart-grouped-line" style="color: #A78BFA;"></i>
-            Analytics & Reports
+            <i class="ri-money-dollar-box-line" style="color: #34D399;"></i>
+            Cash Flow & Operational Revenue Analytics
         </h1>
-        <p>Operational volume, gate utilization, revenue tracking, and OCR recognition intelligence</p>
+        <p>Facility cash inflow tracking, 15-minute free grace auditing, rate performance, and vehicle throughput intelligence</p>
     </div>
     <div class="hero-actions">
+        <button type="button" class="btn-report-action blue" onclick="openChangeFeeModal()">
+            <i class="ri-edit-2-line"></i>
+            <span>Change Parking Fee</span>
+        </button>
         <a href="{{ route('analytics.export', ['range' => $range, 'from' => $customFrom, 'to' => $customTo]) }}" class="btn-report-action primary">
             <i class="ri-file-excel-2-line"></i>
             <span>Export CSV</span>
@@ -441,10 +524,26 @@
     </div>
 </div>
 
+<!-- Mandatory 15-Minute Free Grace Banner Guarantee -->
+<div class="grace-guarantee-alert">
+    <div class="grace-guarantee-info">
+        <i class="ri-shield-check-fill"></i>
+        <div>
+            <strong style="color: #065F46; font-size: 0.95rem;">Mandatory 15-Minute Free Parking Grace Rule Enforced</strong>
+            <p style="margin: 0; font-size: 0.825rem; color: #047857;">
+                Vehicles exiting in 15 minutes or less are assessed <strong>₱0.00</strong> and contribute ₱0.00 to revenue collections while remaining fully audited in the ledger.
+            </p>
+        </div>
+    </div>
+    <div style="font-size: 0.8125rem; color: #065F46; font-weight: 600;">
+        Active Base: <strong>₱{{ number_format($activeRate->base_rate ?? 50, 2) }}</strong> (First {{ $activeRate->base_hours ?? 3 }}h) • Succeeding: <strong>+₱{{ number_format($activeRate->hourly_rate ?? 20, 2) }}/h</strong>
+    </div>
+</div>
+
 <!-- Date Range Filter Bar -->
 <div class="filter-bar">
     <div class="filter-pills">
-        <span style="font-size: 0.8125rem; font-weight: 700; color: var(--text-tertiary); margin-right: 0.35rem;">PERIOD:</span>
+        <span style="font-size: 0.8125rem; font-weight: 700; color: var(--text-tertiary); margin-right: 0.35rem;">REPORT PERIOD:</span>
         <a href="{{ route('analytics', ['range' => 'today']) }}" class="filter-pill {{ $range === 'today' ? 'active' : '' }}">Today</a>
         <a href="{{ route('analytics', ['range' => '7days']) }}" class="filter-pill {{ $range === '7days' ? 'active' : '' }}">Last 7 Days</a>
         <a href="{{ route('analytics', ['range' => '30days']) }}" class="filter-pill {{ $range === '30days' ? 'active' : '' }}">Last 30 Days</a>
@@ -457,112 +556,137 @@
         <input type="date" name="from" value="{{ $customFrom }}" class="date-input" title="From Date">
         <span style="color: var(--text-tertiary); font-size: 0.8125rem;">to</span>
         <input type="date" name="to" value="{{ $customTo }}" class="date-input" title="To Date">
-        <button type="submit" class="btn-report-action primary" style="padding: 0.4rem 0.85rem; font-size: 0.8125rem;">
+        <button type="submit" class="btn-report-action blue" style="padding: 0.45rem 0.95rem; font-size: 0.8125rem;">
             Filter
         </button>
     </form>
 </div>
 
-<!-- Executive KPI Metrics Grid -->
-<div class="kpi-grid">
-    <!-- Revenue -->
-    <div class="kpi-card purple">
+<!-- 7 Report Summary Cards (Requirement 7) -->
+<div class="kpi-grid-7">
+    <!-- Card 1: Total Vehicles Recorded -->
+    <div class="kpi-card slate">
         <div class="kpi-header">
-            <span class="kpi-title">Gross Revenue</span>
-            <div class="kpi-icon purple"><i class="ri-wallet-3-line"></i></div>
+            <span class="kpi-title">1. Total Vehicles</span>
+            <div class="kpi-icon slate"><i class="ri-car-fill"></i></div>
         </div>
-        <div class="kpi-value">₱{{ number_format($totalRevenue, 2) }}</div>
+        <div class="kpi-value">{{ number_format($totalVehicles) }}</div>
         <div class="kpi-sub">
-            <span style="color: #10B981; font-weight: 700;">₱{{ number_format($paidRevenue, 2) }} paid</span>
-            <span>• ₱{{ number_format($unpaidRevenue, 2) }} pending</span>
+            <span>All vehicles recorded in period</span>
         </div>
     </div>
 
-    <!-- Total Volume -->
-    <div class="kpi-card green">
-        <div class="kpi-header">
-            <span class="kpi-title">Total Entries</span>
-            <div class="kpi-icon green"><i class="ri-login-box-line"></i></div>
-        </div>
-        <div class="kpi-value">{{ number_format($totalEntries) }}</div>
-        <div class="kpi-sub">
-            <span style="color: #10B981; font-weight: 700;">{{ $totalExits }} completed checkouts</span>
-        </div>
-    </div>
-
-    <!-- Live Parked -->
+    <!-- Card 2: Completed Sessions -->
     <div class="kpi-card blue">
         <div class="kpi-header">
-            <span class="kpi-title">Current Occupancy</span>
-            <div class="kpi-icon blue"><i class="ri-car-line"></i></div>
+            <span class="kpi-title">2. Completed Sessions</span>
+            <div class="kpi-icon blue"><i class="ri-logout-box-r-line"></i></div>
         </div>
-        <div class="kpi-value">{{ number_format($currentlyParked) }}</div>
+        <div class="kpi-value">{{ number_format($totalCompletedSessions) }}</div>
         <div class="kpi-sub">
-            <span>Vehicles parked inside right now</span>
+            <span style="color: #2563EB; font-weight: 700;">{{ $currentlyParked }} currently inside</span>
         </div>
     </div>
 
-    <!-- Dwell Duration -->
-    <div class="kpi-card orange">
+    <!-- Card 3: Free Sessions (Grace Period) -->
+    <div class="kpi-card emerald">
         <div class="kpi-header">
-            <span class="kpi-title">Average Dwell Time</span>
-            <div class="kpi-icon orange"><i class="ri-time-line"></i></div>
+            <span class="kpi-title">3. Free Sessions (≤15m)</span>
+            <div class="kpi-icon emerald"><i class="ri-gift-line"></i></div>
+        </div>
+        <div class="kpi-value" style="color: #059669;">{{ number_format($totalFreeSessions) }}</div>
+        <div class="kpi-sub">
+            <span style="color: #059669; font-weight: 700;">₱0.00 assessed (Grace)</span>
+        </div>
+    </div>
+
+    <!-- Card 4: Paid Sessions -->
+    <div class="kpi-card purple">
+        <div class="kpi-header">
+            <span class="kpi-title">4. Paid Sessions (>15m)</span>
+            <div class="kpi-icon purple"><i class="ri-shield-star-line"></i></div>
+        </div>
+        <div class="kpi-value" style="color: #7C3AED;">{{ number_format($totalPaidSessions) }}</div>
+        <div class="kpi-sub">
+            <span>Billable parking exits</span>
+        </div>
+    </div>
+
+    <!-- Card 5: Fees Assessed -->
+    <div class="kpi-card amber">
+        <div class="kpi-header">
+            <span class="kpi-title">5. Total Fees Assessed</span>
+            <div class="kpi-icon amber"><i class="ri-file-text-line"></i></div>
+        </div>
+        <div class="kpi-value">₱{{ number_format($totalFeesAssessed, 2) }}</div>
+        <div class="kpi-sub">
+            <span>Gross tariff computation</span>
+        </div>
+    </div>
+
+    <!-- Card 6: Revenue Collected -->
+    <div class="kpi-card emerald">
+        <div class="kpi-header">
+            <span class="kpi-title">6. Revenue Collected</span>
+            <div class="kpi-icon emerald"><i class="ri-money-dollar-circle-fill"></i></div>
+        </div>
+        <div class="kpi-value" style="color: #059669;">₱{{ number_format($totalRevenueCollected, 2) }}</div>
+        <div class="kpi-sub">
+            <span style="color: #059669; font-weight: 700;">Actual cash in hand</span>
+        </div>
+    </div>
+
+    <!-- Card 7: Unpaid / Report Range -->
+    <div class="kpi-card cyan">
+        <div class="kpi-header">
+            <span class="kpi-title">7. Unpaid & Scope</span>
+            <div class="kpi-icon cyan"><i class="ri-calendar-event-line"></i></div>
+        </div>
+        <div class="kpi-value" style="font-size: 1.15rem; color: #0284C7;">
+            ₱{{ number_format($totalUnpaidAssessed, 2) }} Unpaid
+        </div>
+        <div class="kpi-sub" style="margin-top: 0.25rem;">
+            <span>Scope: {{ $rangeLabel }}</span>
+        </div>
+    </div>
+
+    <!-- Operational Dwell Card -->
+    <div class="kpi-card slate">
+        <div class="kpi-header">
+            <span class="kpi-title">Avg Stay & Accuracy</span>
+            <div class="kpi-icon slate"><i class="ri-time-line"></i></div>
         </div>
         <div class="kpi-value">{{ $avgDurationFormatted }}</div>
         <div class="kpi-sub">
-            <span>Average stay per session</span>
-        </div>
-    </div>
-
-    <!-- OCR Accuracy -->
-    <div class="kpi-card cyan">
-        <div class="kpi-header">
-            <span class="kpi-title">OCR Read Accuracy</span>
-            <div class="kpi-icon cyan"><i class="ri-focus-3-line"></i></div>
-        </div>
-        <div class="kpi-value">{{ $avgConfidence }}%</div>
-        <div class="kpi-sub">
-            <span>YOLOv8 & Fast-Plate-OCR average</span>
-        </div>
-    </div>
-
-    <!-- Peak Hour -->
-    <div class="kpi-card amber">
-        <div class="kpi-header">
-            <span class="kpi-title">Busiest Rush Window</span>
-            <div class="kpi-icon amber"><i class="ri-dashboard-3-line"></i></div>
-        </div>
-        <div class="kpi-value" style="font-size: 1.15rem;">{{ $peakHourLabel }}</div>
-        <div class="kpi-sub">
-            <span>{{ $peakHourCount }} vehicle movements</span>
+            <span>OCR Confidence: <strong>{{ $avgConfidence }}%</strong></span>
         </div>
     </div>
 </div>
 
-<!-- Primary Charts: Traffic Trends & Revenue Collection -->
+<!-- Primary Charts: Traffic Trends & Cash Flow Inflow -->
 <div class="charts-grid-2">
-    <!-- Traffic Velocity Trend -->
+    <!-- Traffic Trend Line Chart -->
     <div class="chart-card">
         <div class="chart-header">
             <div class="chart-title">
                 <i class="ri-line-chart-line" style="color: #3B82F6;"></i>
-                <span>Vehicle Traffic Flow Trend</span>
+                <span>Vehicle Movement & Free vs Paid Volume</span>
             </div>
-            <span class="chart-badge">Entries vs Exits Daily</span>
+            <span style="font-size: 0.75rem; font-weight: 700; background: #EFF6FF; color: #2563EB; padding: 0.25rem 0.6rem; border-radius: 8px;">Entries vs Exits Daily</span>
         </div>
         <div class="chart-container">
             <canvas id="trafficTrendChart"></canvas>
         </div>
     </div>
 
-    <!-- Revenue Over Time -->
+    <!-- Cash Flow Inflow Bar Chart -->
     <div class="chart-card">
         <div class="chart-header">
             <div class="chart-title">
-                <i class="ri-wallet-3-fill" style="color: #8B5CF6;"></i>
-                <span>Revenue Collection</span>
+                <i class="ri-wallet-3-fill" style="color: #10B981;"></i>
+                <span>Revenue Flow (₱)</span>
             </div>
-            <span class="chart-badge">Daily Fee Inflow (₱)</span>
+            <span style="font-size: 0.75rem; font-weight: 700; background: #ECFDF5; color: #059669; padding: 0.25rem 0.6rem; border-radius: 8px;">Daily Inflow</span>
         </div>
         <div class="chart-container">
             <canvas id="revenueTrendChart"></canvas>
@@ -570,125 +694,347 @@
     </div>
 </div>
 
-<!-- Secondary Insights: Hourly Heatmap, Fleet Breakdown & Gate Turnover -->
-<div class="charts-grid-3">
-    <!-- 24-Hour Traffic Distribution -->
-    <div class="chart-card">
-        <div class="chart-header">
-            <div class="chart-title">
-                <i class="ri-time-zone-line" style="color: #F59E0B;"></i>
-                <span>24-Hour Peak Heatmap</span>
-            </div>
-            <span class="chart-badge">Traffic by Hour</span>
-        </div>
-        <div class="chart-container">
-            <canvas id="hourlyTrafficChart"></canvas>
-        </div>
-    </div>
+<!-- Cash Flow Reports Navigation Tabs -->
+<div class="report-tabs-nav">
+    <button type="button" class="report-tab-btn active" onclick="switchReportTab('daily', this)">
+        <i class="ri-calendar-line"></i> Daily Cash Flow
+    </button>
+    <button type="button" class="report-tab-btn" onclick="switchReportTab('weekly', this)">
+        <i class="ri-calendar-todo-line"></i> Weekly Cash Flow
+    </button>
+    <button type="button" class="report-tab-btn" onclick="switchReportTab('monthly', this)">
+        <i class="ri-calendar-2-line"></i> Monthly Cash Flow
+    </button>
+    <button type="button" class="report-tab-btn" onclick="switchReportTab('transactions', this)">
+        <i class="ri-file-list-3-line"></i> Transaction Ledger (Audit)
+    </button>
+</div>
 
-    <!-- Vehicle Types -->
-    <div class="chart-card">
-        <div class="chart-header">
-            <div class="chart-title">
-                <i class="ri-pie-chart-2-line" style="color: #10B981;"></i>
-                <span>Vehicle Fleet Ratio</span>
+<!-- TAB 1: DAILY CASH FLOW TABLE -->
+<div id="tab-daily" class="report-tab-panel active">
+    <div class="report-table-card">
+        <div class="report-table-header">
+            <div class="report-table-title">
+                <h3><i class="ri-calendar-line" style="color: #2563EB;"></i> Daily Cash Flow Breakdown</h3>
+                <p style="margin: 0; font-size: 0.8125rem; color: var(--text-secondary);">Summary by calendar day showing volume, 15-minute free sessions, assessed dues, and collected cash</p>
             </div>
-            <span class="chart-badge">Type Distribution</span>
+            <span style="font-size: 0.8125rem; color: var(--text-tertiary);">{{ count($dailyCashFlow) }} days recorded</span>
         </div>
-        <div class="chart-container">
-            <canvas id="vehicleTypesChart"></canvas>
-        </div>
-    </div>
-
-    <!-- Gate Utilization -->
-    <div class="chart-card">
-        <div class="chart-header">
-            <div class="chart-title">
-                <i class="ri-dual-sim-1-line" style="color: #06B6D4;"></i>
-                <span>Gate Turnout Balance</span>
-            </div>
-            <span class="chart-badge">Terminal Activity</span>
-        </div>
-        <div class="chart-container">
-            <canvas id="gateBalanceChart"></canvas>
+        <div class="report-table-wrap">
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Vehicles Entered</th>
+                        <th>Sessions Completed</th>
+                        <th>15m Free Grace (₱0.00)</th>
+                        <th>Paid Sessions</th>
+                        <th>Fees Assessed</th>
+                        <th>Revenue Collected</th>
+                        <th>Unpaid Fees</th>
+                        <th>Avg Stay</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($dailyCashFlow as $row)
+                        @php
+                            $dm = (int)$row->avg_mins;
+                            $dh = intdiv($dm, 60);
+                            $drem = $dm % 60;
+                            $stay = $dh > 0 ? "{$dh}h {$drem}m" : ($dm > 0 ? "{$dm}m" : "—");
+                        @endphp
+                        <tr>
+                            <td>
+                                <strong>{{ \Carbon\Carbon::parse($row->report_date)->format('M d, Y') }}</strong>
+                                <div style="font-size: 0.725rem; color: var(--text-tertiary);">{{ \Carbon\Carbon::parse($row->report_date)->format('l') }}</div>
+                            </td>
+                            <td><strong style="color: #2563EB;">{{ $row->total_vehicles }}</strong></td>
+                            <td><strong>{{ $row->completed_sessions }}</strong></td>
+                            <td>
+                                <span class="grace-badge">
+                                    <i class="ri-gift-line"></i> {{ $row->free_sessions }} free
+                                </span>
+                            </td>
+                            <td><strong style="color: #7C3AED;">{{ $row->paid_sessions }}</strong></td>
+                            <td><strong>₱{{ number_format((float)$row->fees_assessed, 2) }}</strong></td>
+                            <td>
+                                <strong style="color: #059669; font-size: 0.95rem;">
+                                    ₱{{ number_format((float)$row->revenue_collected, 2) }}
+                                </strong>
+                            </td>
+                            <td>
+                                @if((float)$row->unpaid_fees > 0)
+                                    <span style="color: #D97706; font-weight: 700;">₱{{ number_format((float)$row->unpaid_fees, 2) }}</span>
+                                @else
+                                    <span style="color: #94A3B8;">₱0.00</span>
+                                @endif
+                            </td>
+                            <td>{{ $stay }}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="9" style="text-align: center; padding: 2rem; color: var(--text-tertiary);">
+                                No daily cash flow records found in this date window.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
 
-<!-- Operational Reports Breakdown Table -->
-<div class="report-table-card">
-    <div class="report-table-header">
-        <div class="report-table-title">
-            <h3><i class="ri-file-list-3-line" style="color: #8B5CF6;"></i> Daily Operational Audit Log</h3>
-            <p>Aggregated daily statistics for period: <strong>{{ $rangeLabel }}</strong></p>
+<!-- TAB 2: WEEKLY CASH FLOW TABLE -->
+<div id="tab-weekly" class="report-tab-panel">
+    <div class="report-table-card">
+        <div class="report-table-header">
+            <div class="report-table-title">
+                <h3><i class="ri-calendar-todo-line" style="color: #7C3AED;"></i> Weekly Cash Flow Breakdown</h3>
+                <p style="margin: 0; font-size: 0.8125rem; color: var(--text-secondary);">Aggregated week-by-week financial totals and free grace metrics</p>
+            </div>
+            <span style="font-size: 0.8125rem; color: var(--text-tertiary);">{{ count($weeklyCashFlow) }} weeks recorded</span>
         </div>
-        <div style="font-size: 0.8125rem; color: var(--text-tertiary);">
-            Showing {{ count($dailyReports) }} operational periods
+        <div class="report-table-wrap">
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Week Interval</th>
+                        <th>Total Vehicles</th>
+                        <th>Completed</th>
+                        <th>15m Free Sessions</th>
+                        <th>Paid Sessions</th>
+                        <th>Fees Assessed</th>
+                        <th>Revenue Collected</th>
+                        <th>Unpaid Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($weeklyCashFlow as $row)
+                        <tr>
+                            <td>
+                                <strong>{{ \Carbon\Carbon::parse($row->week_start)->format('M d') }} – {{ \Carbon\Carbon::parse($row->week_end)->format('M d, Y') }}</strong>
+                                <div style="font-size: 0.725rem; color: var(--text-tertiary);">ISO Week {{ substr($row->year_week, -2) }}</div>
+                            </td>
+                            <td><strong style="color: #2563EB;">{{ $row->total_vehicles }}</strong></td>
+                            <td><strong>{{ $row->completed_sessions }}</strong></td>
+                            <td>
+                                <span class="grace-badge">
+                                    <i class="ri-gift-line"></i> {{ $row->free_sessions }} free
+                                </span>
+                            </td>
+                            <td><strong style="color: #7C3AED;">{{ $row->paid_sessions }}</strong></td>
+                            <td><strong>₱{{ number_format((float)$row->fees_assessed, 2) }}</strong></td>
+                            <td>
+                                <strong style="color: #059669; font-size: 0.95rem;">
+                                    ₱{{ number_format((float)$row->revenue_collected, 2) }}
+                                </strong>
+                            </td>
+                            <td>
+                                @if((float)$row->unpaid_fees > 0)
+                                    <span style="color: #D97706; font-weight: 700;">₱{{ number_format((float)$row->unpaid_fees, 2) }}</span>
+                                @else
+                                    <span style="color: #94A3B8;">₱0.00</span>
+                                @endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-tertiary);">
+                                No weekly records found for this period.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
-    </div>
-    <div class="report-table-wrap">
-        <table class="report-table">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Vehicle Entries</th>
-                    <th>Vehicle Exits</th>
-                    <th>Gross Revenue (₱)</th>
-                    <th>Avg Duration</th>
-                    <th>OCR Read Quality</th>
-                    <th>Volume Grade</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse ($dailyReports as $report)
-                    @php
-                        $dm = (int)$report->avg_mins;
-                        $dh = intdiv($dm, 60);
-                        $drem = $dm % 60;
-                        $formattedDwell = $dh > 0 ? "{$dh}h {$drem}m" : ($dm > 0 ? "{$dm}m" : "—");
-                        $conf = round((float)$report->avg_conf, 1);
-                        $vol = (int)$report->entries_count;
-                        $grade = $vol >= 5 ? 'High Volume' : ($vol >= 2 ? 'Normal' : 'Low Volume');
-                        $gradeClass = $vol >= 5 ? 'high' : ($vol >= 2 ? 'medium' : 'low');
-                    @endphp
-                    <tr>
-                        <td>
-                            <strong style="color: var(--text-primary);">{{ \Carbon\Carbon::parse($report->report_date)->format('M d, Y') }}</strong>
-                            <div style="font-size: 0.725rem; color: var(--text-tertiary);">{{ \Carbon\Carbon::parse($report->report_date)->format('l') }}</div>
-                        </td>
-                        <td>
-                            <span style="font-weight: 700; color: #10B981;"><i class="ri-login-box-line"></i> {{ $report->entries_count }}</span>
-                        </td>
-                        <td>
-                            <span style="font-weight: 700; color: #F97316;"><i class="ri-logout-box-r-line"></i> {{ $report->exits_count }}</span>
-                        </td>
-                        <td>
-                            <strong style="color: var(--text-primary);">₱{{ number_format((float)$report->daily_revenue, 2) }}</strong>
-                        </td>
-                        <td>
-                            <span>{{ $formattedDwell }}</span>
-                        </td>
-                        <td>
-                            <span style="font-weight: 600; color: {{ $conf >= 90 ? '#10B981' : '#F59E0B' }};">
-                                {{ $conf }}%
-                            </span>
-                        </td>
-                        <td>
-                            <span class="rate-badge {{ $gradeClass }}">{{ $grade }}</span>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="7" style="text-align: center; padding: 2.5rem; color: var(--text-tertiary);">
-                            <i class="ri-inbox-line" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
-                            No operational logs found in this date window.
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
     </div>
 </div>
+
+<!-- TAB 3: MONTHLY CASH FLOW TABLE -->
+<div id="tab-monthly" class="report-tab-panel">
+    <div class="report-table-card">
+        <div class="report-table-header">
+            <div class="report-table-title">
+                <h3><i class="ri-calendar-2-line" style="color: #059669;"></i> Monthly Cash Flow Breakdown</h3>
+                <p style="margin: 0; font-size: 0.8125rem; color: var(--text-secondary);">High-level fiscal month performance, assessing paid revenue vs zero-rate grace period stays</p>
+            </div>
+            <span style="font-size: 0.8125rem; color: var(--text-tertiary);">{{ count($monthlyCashFlow) }} months recorded</span>
+        </div>
+        <div class="report-table-wrap">
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Total Vehicles</th>
+                        <th>Completed</th>
+                        <th>15m Free Sessions</th>
+                        <th>Paid Sessions</th>
+                        <th>Fees Assessed</th>
+                        <th>Revenue Collected</th>
+                        <th>Unpaid Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($monthlyCashFlow as $row)
+                        <tr>
+                            <td>
+                                <strong style="font-size: 0.95rem;">{{ $row->month_label }}</strong>
+                            </td>
+                            <td><strong style="color: #2563EB;">{{ $row->total_vehicles }}</strong></td>
+                            <td><strong>{{ $row->completed_sessions }}</strong></td>
+                            <td>
+                                <span class="grace-badge">
+                                    <i class="ri-gift-line"></i> {{ $row->free_sessions }} free
+                                </span>
+                            </td>
+                            <td><strong style="color: #7C3AED;">{{ $row->paid_sessions }}</strong></td>
+                            <td><strong>₱{{ number_format((float)$row->fees_assessed, 2) }}</strong></td>
+                            <td>
+                                <strong style="color: #059669; font-size: 0.95rem;">
+                                    ₱{{ number_format((float)$row->revenue_collected, 2) }}
+                                </strong>
+                            </td>
+                            <td>
+                                @if((float)$row->unpaid_fees > 0)
+                                    <span style="color: #D97706; font-weight: 700;">₱{{ number_format((float)$row->unpaid_fees, 2) }}</span>
+                                @else
+                                    <span style="color: #94A3B8;">₱0.00</span>
+                                @endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-tertiary);">
+                                No monthly cash flow logs recorded yet.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- TAB 4: DETAILED TRANSACTION LEDGER -->
+<div id="tab-transactions" class="report-tab-panel">
+    <div class="report-table-card">
+        <div class="report-table-header">
+            <div class="report-table-title">
+                <h3><i class="ri-file-list-3-line" style="color: #64748B;"></i> Individual Transactions Audit Ledger</h3>
+                <p style="margin: 0; font-size: 0.8125rem; color: var(--text-secondary);">Itemized vehicle session ledger showing timestamps, duration, rate applied, and staff corrections</p>
+            </div>
+            <span style="font-size: 0.8125rem; color: var(--text-tertiary);">Showing recent transactions</span>
+        </div>
+        <div class="report-table-wrap">
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Ticket / Plate</th>
+                        <th>Vehicle Type</th>
+                        <th>Entry Timestamp</th>
+                        <th>Exit Timestamp</th>
+                        <th>Dwell Time</th>
+                        <th>Grace Rule Applied</th>
+                        <th>Assessed Fee</th>
+                        <th>Payment Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($transactions as $tx)
+                        @php
+                            $isFree = $tx->isFreeGrace();
+                            $fee = (float)($tx->parking_fee ?? 0);
+                            $isLowConf = $tx->isLowConfidence();
+                        @endphp
+                        <tr>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                                    <strong style="font-family: monospace; font-size: 0.95rem; letter-spacing: 0.05em;">{{ $tx->plate_number }}</strong>
+                                    @if($isLowConf)
+                                        <span title="Low OCR confidence (<70%)" style="background: #FEF3C7; color: #D97706; font-size: 0.65rem; font-weight: 800; padding: 0.15rem 0.35rem; border-radius: 4px;">
+                                            <i class="ri-alert-line"></i> CHECK
+                                        </span>
+                                    @endif
+                                </div>
+                                <div style="font-size: 0.725rem; color: var(--text-tertiary);">ID #{{ $tx->id }} • {{ $tx->gate_entry ?? 'Gate 1' }}</div>
+                            </td>
+                            <td>
+                                <span style="font-size: 0.8125rem; text-transform: capitalize;">{{ $tx->vehicle_type ?? 'car' }}</span>
+                            </td>
+                            <td>
+                                <div>{{ $tx->entry_time ? $tx->entry_time->format('M d, Y') : '—' }}</div>
+                                <div style="font-size: 0.725rem; color: var(--text-tertiary);">{{ $tx->entry_time ? $tx->entry_time->format('h:i:s A') : '' }}</div>
+                            </td>
+                            <td>
+                                @if($tx->exit_time)
+                                    <div>{{ $tx->exit_time->format('M d, Y') }}</div>
+                                    <div style="font-size: 0.725rem; color: var(--text-tertiary);">{{ $tx->exit_time->format('h:i:s A') }}</div>
+                                @else
+                                    <span style="color: #2563EB; font-weight: 600; font-size: 0.75rem;">Currently Parked</span>
+                                @endif
+                            </td>
+                            <td>
+                                @if($tx->duration_minutes !== null)
+                                    @php
+                                        $dm = (int)$tx->duration_minutes;
+                                        $dh = intdiv($dm, 60);
+                                        $drem = $dm % 60;
+                                    @endphp
+                                    <span style="font-weight: 600;">{{ $dh > 0 ? "{$dh}h {$drem}m" : "{$dm}m" }}</span>
+                                @else
+                                    <span style="color: #94A3B8;">—</span>
+                                @endif
+                            </td>
+                            <td>
+                                @if($isFree)
+                                    <span class="grace-badge">
+                                        <i class="ri-gift-line"></i> FREE (≤15m Grace)
+                                    </span>
+                                @elseif($tx->status === 'exited')
+                                    <span style="font-size: 0.75rem; color: #64748B;">Standard Tariff</span>
+                                @else
+                                    <span style="font-size: 0.75rem; color: #94A3B8;">In Progress</span>
+                                @endif
+                            </td>
+                            <td>
+                                @if($isFree)
+                                    <span style="color: #059669; font-weight: 800;">₱0.00</span>
+                                @else
+                                    <strong style="color: var(--text-primary);">₱{{ number_format($fee, 2) }}</strong>
+                                @endif
+                            </td>
+                            <td>
+                                @if($tx->payment_status === 'paid')
+                                    <span class="paid-badge"><i class="ri-check-line"></i> Paid</span>
+                                @elseif($isFree)
+                                    <span class="grace-badge"><i class="ri-check-line"></i> Free</span>
+                                @else
+                                    <span class="unpaid-badge"><i class="ri-time-line"></i> {{ ucfirst($tx->payment_status ?? 'Unpaid') }}</span>
+                                @endif
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-outline" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" 
+                                        onclick="openCorrectPlateModal('{{ $tx->id }}', '{{ $tx->plate_number }}', '{{ $tx->entry_image ? asset('storage/'.$tx->entry_image) : '' }}')">
+                                    <i class="ri-edit-line"></i> Correct
+                                </button>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="9" style="text-align: center; padding: 2rem; color: var(--text-tertiary);">
+                                No individual transaction records found.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@include('partials.change-fee-modal')
+@include('partials.correct-plate-modal')
 @endsection
 
 @section('additional-scripts')
@@ -696,8 +1042,18 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
 <script>
+function switchReportTab(tabId, btn) {
+    document.querySelectorAll('.report-tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.report-tab-panel').forEach(p => p.classList.remove('active'));
+
+    btn.classList.add('active');
+    const panel = document.getElementById('tab-' + tabId);
+    if (panel) {
+        panel.classList.add('active');
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function () {
-    // Chart Default Styles
     Chart.defaults.font.family = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
     Chart.defaults.color = '#64748B';
 
@@ -705,8 +1061,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const trendEntries = @json($trendEntries);
     const trendExits = @json($trendExits);
     const trendRevenue = @json($trendRevenue);
-    const hourlyData = @json($hourlyTraffic);
-    const vehicleTypes = @json($vehicleTypes);
+    const trendFree = @json($trendFree);
 
     // 1. Traffic Velocity Line Chart
     const ctxTraffic = document.getElementById('trafficTrendChart');
@@ -717,26 +1072,34 @@ document.addEventListener('DOMContentLoaded', function () {
                 labels: trendLabels.length ? trendLabels : ['Today'],
                 datasets: [
                     {
-                        label: 'Entries (Gate In)',
+                        label: 'Entries',
                         data: trendEntries.length ? trendEntries : [0],
-                        borderColor: '#10B981',
-                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderColor: '#3B82F6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.08)',
                         tension: 0.35,
                         fill: true,
-                        pointBackgroundColor: '#10B981',
                         pointRadius: 4,
-                        borderWidth: 2.5
+                        borderWidth: 2
                     },
                     {
-                        label: 'Exits (Gate Out)',
+                        label: 'Paid Exits',
                         data: trendExits.length ? trendExits : [0],
-                        borderColor: '#F97316',
-                        backgroundColor: 'rgba(249, 115, 22, 0.08)',
+                        borderColor: '#8B5CF6',
+                        backgroundColor: 'rgba(139, 92, 246, 0.08)',
                         tension: 0.35,
                         fill: true,
-                        pointBackgroundColor: '#F97316',
                         pointRadius: 4,
-                        borderWidth: 2.5
+                        borderWidth: 2
+                    },
+                    {
+                        label: '15m Free Sessions',
+                        data: trendFree.length ? trendFree : [0],
+                        borderColor: '#10B981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                        tension: 0.35,
+                        fill: true,
+                        pointRadius: 4,
+                        borderWidth: 2
                     }
                 ]
             },
@@ -764,7 +1127,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 datasets: [{
                     label: 'Revenue (₱)',
                     data: trendRevenue.length ? trendRevenue : [0],
-                    backgroundColor: '#8B5CF6',
+                    backgroundColor: '#10B981',
                     borderRadius: 6,
                     barThickness: 24,
                 }]
@@ -786,96 +1149,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         grid: { color: '#F1F5F9' },
                         ticks: { callback: function(val) { return '₱' + val; } }
                     },
-                    x: { grid: { display: false } }
-                }
-            }
-        });
-    }
-
-    // 3. Hourly Traffic Heatmap (24 Hours)
-    const ctxHourly = document.getElementById('hourlyTrafficChart');
-    if (ctxHourly) {
-        const hoursLabels = [
-            '12A', '1A', '2A', '3A', '4A', '5A', '6A', '7A', '8A', '9A', '10A', '11A',
-            '12P', '1P', '2P', '3P', '4P', '5P', '6P', '7P', '8P', '9P', '10P', '11P'
-        ];
-
-        new Chart(ctxHourly, {
-            type: 'bar',
-            data: {
-                labels: hoursLabels,
-                datasets: [{
-                    label: 'Movements',
-                    data: hourlyData,
-                    backgroundColor: '#3B82F6',
-                    borderRadius: 4,
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, grid: { color: '#F1F5F9' }, ticks: { precision: 0 } },
-                    x: { grid: { display: false }, ticks: { font: { size: 10 } } }
-                }
-            }
-        });
-    }
-
-    // 4. Vehicle Fleet Distribution (Donut Chart)
-    const ctxVehicles = document.getElementById('vehicleTypesChart');
-    if (ctxVehicles) {
-        new Chart(ctxVehicles, {
-            type: 'doughnut',
-            data: {
-                labels: ['Car', 'Motorcycle', 'Truck', 'Van'],
-                datasets: [{
-                    data: [
-                        vehicleTypes.car || 0,
-                        vehicleTypes.motorcycle || 0,
-                        vehicleTypes.truck || 0,
-                        vehicleTypes.van || 0
-                    ],
-                    backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6'],
-                    borderWidth: 2,
-                    borderColor: '#FFFFFF'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12, font: { weight: '600' } } }
-                },
-                cutout: '68%'
-            }
-        });
-    }
-
-    // 5. Gate Turnout Balance (Bar Chart)
-    const ctxGate = document.getElementById('gateBalanceChart');
-    if (ctxGate) {
-        const gateEntries = {{ $totalEntries }};
-        const gateExits = {{ $totalExits }};
-        new Chart(ctxGate, {
-            type: 'bar',
-            data: {
-                labels: ['Gate 1 (Entry)', 'Gate 2 (Exit)'],
-                datasets: [{
-                    label: 'Traffic Count',
-                    data: [gateEntries, gateExits],
-                    backgroundColor: ['#10B981', '#F97316'],
-                    borderRadius: 8,
-                    barThickness: 36
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, grid: { color: '#F1F5F9' }, ticks: { precision: 0 } },
                     x: { grid: { display: false } }
                 }
             }

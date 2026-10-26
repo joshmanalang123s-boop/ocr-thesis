@@ -74,6 +74,13 @@ class ParkingSession extends Model
         $totalVehicles = $this->entries()->count();
         $currentlyParked = $this->entries()->where('status', 'entered')->count();
         $completedSessions = $this->entries()->where('status', 'exited')->count();
+        $freeSessions = $this->entries()->where('status', 'exited')
+            ->where(function($q) {
+                $q->where('is_free_grace', true)
+                  ->orWhere('parking_fee', '<=', 0)
+                  ->orWhere('duration_minutes', '<=', 15);
+            })->count();
+        $paidSessions = max(0, $completedSessions - $freeSessions);
         $totalRevenue = (float)$this->entries()->where('status', 'exited')->sum('parking_fee');
         $totalDurationMinutes = (int)$this->entries()->where('status', 'exited')->sum('duration_minutes');
 
@@ -85,6 +92,8 @@ class ParkingSession extends Model
             'total_vehicles' => $totalVehicles,
             'currently_parked' => $currentlyParked,
             'completed_sessions' => $completedSessions,
+            'free_sessions' => $freeSessions,
+            'paid_sessions' => $paidSessions,
             'total_revenue' => $totalRevenue,
             'formatted_revenue' => '₱' . number_format($totalRevenue, 2),
             'total_duration_minutes' => $totalDurationMinutes,

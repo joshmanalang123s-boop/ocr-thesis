@@ -238,6 +238,26 @@
     <p>License plate {{ $plateNumber }} successfully processed at Gate 2 checkout</p>
 </div>
 
+@php
+    $isGrace = ($entry && ($entry->is_free_grace || $entry->isFreeGrace())) || ($totalFeeAmount <= 0);
+@endphp
+
+@if($isGrace)
+<!-- 15-Minute Free Grace Banner -->
+<div style="background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%); border: 1.5px solid #10B981; border-radius: 12px; padding: 0.85rem 1.25rem; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <i class="ri-gift-line" style="font-size: 1.75rem; color: #059669;"></i>
+        <div>
+            <strong style="color: #065F46; font-size: 1rem;">15-Minute Free Parking Grace Period Applied</strong>
+            <p style="margin: 0; font-size: 0.825rem; color: #047857;">
+                The vehicle exited within the mandatory 15-minute free grace window. The assessed parking fee is <strong>₱0.00</strong>.
+            </p>
+        </div>
+    </div>
+    <span style="background: #047857; color: white; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.05em;">FEE WAIVED</span>
+</div>
+@endif
+
 <!-- Parking Fee Total Cost Summary Banner -->
 <div class="cost-summary-box">
     <div class="cost-summary-main">
@@ -247,11 +267,11 @@
     <div class="cost-summary-details">
         <span>
             Time In (Entry)
-            <strong>{{ $entryTime ? $entryTime->format('h:i A') : 'N/A' }}</strong>
+            <strong>{{ $entryTime ? $entryTime->timezone('Asia/Manila')->format('h:i A') : 'N/A' }}</strong>
         </span>
         <span>
             Time Out (Exit)
-            <strong>{{ $exitTimestamp->format('h:i A') }}</strong>
+            <strong>{{ $exitTimestamp->timezone('Asia/Manila')->format('h:i A') }}</strong>
         </span>
         <span>
             Duration
@@ -340,12 +360,12 @@
             <div class="details-list" style="text-align: left;">
                 <div class="detail-item">
                     <span style="color: var(--text-secondary);"><i class="ri-login-box-line"></i> Time In (Entry)</span>
-                    <strong style="color: var(--text-primary);">{{ $entryTime ? $entryTime->format('M d, Y • h:i:s A') : 'N/A' }}</strong>
+                    <strong style="color: var(--text-primary);">{{ $entryTime ? $entryTime->timezone('Asia/Manila')->format('M d, Y • h:i:s A') : 'N/A' }}</strong>
                 </div>
 
                 <div class="detail-item">
                     <span style="color: var(--text-secondary);"><i class="ri-logout-box-r-line"></i> Time Out (Exit)</span>
-                    <strong style="color: var(--text-primary);">{{ $exitTimestamp->format('M d, Y • h:i:s A') }}</strong>
+                    <strong style="color: var(--text-primary);">{{ $exitTimestamp->timezone('Asia/Manila')->format('M d, Y • h:i:s A') }}</strong>
                 </div>
 
                 <div class="detail-item">
@@ -389,11 +409,11 @@
     </div>
 
     <div style="text-align: center; font-size: 12px; margin-bottom: 4px;">
-        TIME IN: {{ $entryTime ? $entryTime->format('M d, Y h:i A') : 'N/A' }}
+        TIME IN: {{ $entryTime ? $entryTime->timezone('Asia/Manila')->format('M d, Y h:i A') : 'N/A' }}
     </div>
 
     <div style="text-align: center; font-size: 12px; margin-bottom: 4px;">
-        TIME OUT: {{ $exitTimestamp->format('M d, Y h:i A') }}
+        TIME OUT: {{ $exitTimestamp->timezone('Asia/Manila')->format('M d, Y h:i A') }}
     </div>
 
     <div style="text-align: center; font-size: 12px; margin-bottom: 8px; font-weight: bold;">
@@ -402,11 +422,14 @@
 
     <div style="text-align: center; font-size: 14px; font-weight: 900; border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 6px 0; margin-bottom: 8px;">
         TOTAL COST: {{ $formattedFee }}
+        @if($isGrace)
+        <div style="font-size: 11px; font-weight: 700; margin-top: 3px;">*** 15-MIN FREE GRACE APPLIED ***</div>
+        @endif
     </div>
 
     <div style="text-align: center; font-size: 10px;">
         <div>THANK YOU FOR PARKING!</div>
-        <div>AUTOTRACE PARKING</div>
+        <div>SABINO PARKING</div>
     </div>
 </div>
 @endsection

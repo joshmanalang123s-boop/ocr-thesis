@@ -4,19 +4,21 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\PlateEntry;
+use App\Models\ParkingRate;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class AnalyticsController extends Controller
 {
     /**
-     * Display the Analytics & Reports dashboard.
+     * Display the Analytics & Cash Flow Reports dashboard.
      */
     public function index(Request $request)
     {
         $range = $request->query('range', '30days');
         $customFrom = $request->query('from');
         $customTo = $request->query('to');
+        $reportType = $request->query('tab', 'daily'); // 'daily', 'weekly', 'monthly', 'transactions'
 
         $now = Carbon::now();
         $startDate = null;
@@ -29,11 +31,11 @@ class AnalyticsController extends Controller
                 break;
             case '7days':
                 $startDate = $now->copy()->subDays(6)->startOfDay();
-                $rangeLabel = 'Last 7 Days';
+                $rangeLabel = 'Last 7 Days (' . $startDate->format('M d') . ' – ' . $endDate->format('M d, Y') . ')';
                 break;
             case '30days':
                 $startDate = $now->copy()->subDays(29)->startOfDay();
-                $rangeLabel = 'Last 30 Days';
+                $rangeLabel = 'Last 30 Days (' . $startDate->format('M d') . ' – ' . $endDate->format('M d, Y') . ')';
                 break;
             case 'month':
                 $startDate = $now->copy()->startOfMonth();
@@ -46,7 +48,7 @@ class AnalyticsController extends Controller
                 if ($customTo) {
                     $endDate = Carbon::parse($customTo)->endOfDay();
                 }
-                $rangeLabel = ($startDate ? $startDate->format('M d, Y') : 'Start') . ' — ' . $endDate->format('M d, Y');
+                $rangeLabel = ($startDate ? $startDate->format('M d, Y') : 'Beginning') . ' — ' . $endDate->format('M d, Y');
                 break;
             case 'all':
             default:
@@ -64,15 +66,43 @@ class AnalyticsController extends Controller
             $query->where('entry_time', '<=', $endDate);
         }
 
-        // KPI Metrics
-        $totalEntries = (clone $query)->count();
-        $totalExits = (clone $query)->where('status', 'exited')->count();
-        $currentlyParked = PlateEntry::where('status', 'entered')->count(); // Current live occupancy
-        $totalRevenue = (float)(clone $query)->where('status', 'exited')->sum('parking_fee');
-        $paidRevenue = (float)(clone $query)->where('status', 'exited')->where('payment_status', 'paid')->sum('parking_fee');
-        $unpaidRevenue = (float)(clone $query)->where('status', 'exited')->where('payment_status', 'unpaid')->sum('parking_fee');
-        
-        $avgDurationMinutes = (float)(clone $query)->where('status', 'exited')->whereNotNull('duration_minutes')->avg('duration_minutes');
+        // ─── REPORT SUMMARY METRICS (Requirement 7) ───────────────────
+        $totalVehicles = (clone $query)->count();
+        $totalCompletedSessions = (clone $query)->where('status', 'exited')->count();
+        $currentlyParked = PlateEntry::where('status', 'entered')->count();
+
+        // Free sessions: exited with 15-min grace applied or fee == 0
+        $totalFreeSessions = (clone $query)
+            ->where('status', 'exited')
+            ->where(function ($q) {
+                $q->where('is_free_grace', true)
+                  ->orWhere('parking_fee', '<=', 0)
+                  ->orWhere('duration_minutes', '<=', 15);
+            })
+            ->count();
+
+        $totalPaidSessions = max(0, $totalCompletedSessions - $totalFreeSessions);
+
+        // Fees Assessed vs Actual Revenue Collected
+        $totalFeesAssessed = (float)(clone $query)
+            ->where('status', 'exited')
+            ->sum('parking_fee');
+
+        $totalRevenueCollected = (float)(clone $query)
+            ->where('status', 'exited')
+            ->where('payment_status', 'paid')
+            ->sum('parking_fee');
+
+        $totalUnpaidAssessed = (float)(clone $query)
+            ->where('status', 'exited')
+            ->where('payment_status', 'unpaid')
+            ->sum('parking_fee');
+
+        $avgDurationMinutes = (float)(clone $query)
+            ->where('status', 'exited')
+            ->whereNotNull('duration_minutes')
+            ->avg('duration_minutes');
+
         $avgConfidence = (float)(clone $query)->avg('entry_confidence');
 
         // Format duration
@@ -108,114 +138,125 @@ class AnalyticsController extends Controller
             ->pluck('count', 'gate_exit')
             ->toArray();
 
-        // Hourly traffic distribution (0-23 hours)
-        $hourlyTraffic = array_fill(0, 24, 0);
-        $hourlyEntries = (clone $query)
-            ->select(DB::raw('HOUR(entry_time) as hour'), DB::raw('count(*) as count'))
-            ->whereNotNull('entry_time')
-            ->groupBy(DB::raw('HOUR(entry_time)'))
-            ->get();
-
-        foreach ($hourlyEntries as $row) {
-            $h = (int)$row->hour;
-            if ($h >= 0 && $h < 24) {
-                $hourlyTraffic[$h] = (int)$row->count;
-            }
-        }
-
-        // Peak hour determination
-        $peakHourVal = 0;
-        $peakHourCount = 0;
-        foreach ($hourlyTraffic as $h => $c) {
-            if ($c > $peakHourCount) {
-                $peakHourCount = $c;
-                $peakHourVal = $h;
-            }
-        }
-        $peakHourLabel = Carbon::createFromTime($peakHourVal, 0)->format('g A') . ' - ' . Carbon::createFromTime($peakHourVal + 1, 0)->format('g A');
-
-        // Daily traffic trend (last 14 days or in range)
-        $trendQuery = (clone $query)
-            ->select(
-                DB::raw('DATE(entry_time) as date'),
-                DB::raw('count(*) as total_entries'),
-                DB::raw('SUM(CASE WHEN status = "exited" THEN 1 ELSE 0 END) as total_exits'),
-                DB::raw('SUM(CASE WHEN status = "exited" THEN parking_fee ELSE 0 END) as revenue'),
-                DB::raw('AVG(duration_minutes) as avg_duration'),
-                DB::raw('AVG(entry_confidence) as avg_conf')
-            )
-            ->whereNotNull('entry_time')
-            ->groupBy(DB::raw('DATE(entry_time)'))
-            ->orderBy('date', 'ASC')
-            ->get();
-
-        $trendLabels = [];
-        $trendEntries = [];
-        $trendExits = [];
-        $trendRevenue = [];
-
-        foreach ($trendQuery as $row) {
-            $formattedDate = Carbon::parse($row->date)->format('M d');
-            $trendLabels[] = $formattedDate;
-            $trendEntries[] = (int)$row->total_entries;
-            $trendExits[] = (int)$row->total_exits;
-            $trendRevenue[] = round((float)$row->revenue, 2);
-        }
-
-        // Daily report records for table
-        $dailyReports = (clone $query)
+        // ─── DAILY CASH FLOW REPORT ─────────────────────────────────
+        $dailyCashFlow = (clone $query)
             ->select(
                 DB::raw('DATE(entry_time) as report_date'),
-                DB::raw('count(*) as entries_count'),
-                DB::raw('SUM(CASE WHEN status = "exited" THEN 1 ELSE 0 END) as exits_count'),
-                DB::raw('SUM(CASE WHEN status = "exited" THEN parking_fee ELSE 0 END) as daily_revenue'),
+                DB::raw('count(*) as total_vehicles'),
+                DB::raw('SUM(CASE WHEN status = "exited" THEN 1 ELSE 0 END) as completed_sessions'),
+                DB::raw('SUM(CASE WHEN status = "exited" AND (is_free_grace = 1 OR parking_fee <= 0 OR duration_minutes <= 15) THEN 1 ELSE 0 END) as free_sessions'),
+                DB::raw('SUM(CASE WHEN status = "exited" AND (is_free_grace = 0 AND parking_fee > 0 AND (duration_minutes > 15 OR duration_minutes IS NULL)) THEN 1 ELSE 0 END) as paid_sessions'),
+                DB::raw('SUM(CASE WHEN status = "exited" THEN parking_fee ELSE 0 END) as fees_assessed'),
+                DB::raw('SUM(CASE WHEN status = "exited" AND payment_status = "paid" THEN parking_fee ELSE 0 END) as revenue_collected'),
+                DB::raw('SUM(CASE WHEN status = "exited" AND payment_status = "unpaid" THEN parking_fee ELSE 0 END) as unpaid_fees'),
                 DB::raw('AVG(CASE WHEN status = "exited" THEN duration_minutes ELSE NULL END) as avg_mins'),
                 DB::raw('AVG(entry_confidence) as avg_conf')
             )
             ->whereNotNull('entry_time')
             ->groupBy(DB::raw('DATE(entry_time)'))
             ->orderBy('report_date', 'DESC')
-            ->take(20)
+            ->take(30)
             ->get();
 
-        // Top Frequent Visitors / Plates
-        $topPlates = (clone $query)
-            ->select('plate_number', DB::raw('count(*) as visits'), DB::raw('SUM(parking_fee) as spent'), DB::raw('MAX(entry_time) as last_seen'))
-            ->groupBy('plate_number')
-            ->orderByDesc('visits')
-            ->take(5)
+        // ─── WEEKLY CASH FLOW REPORT ────────────────────────────────
+        $weeklyCashFlow = (clone $query)
+            ->select(
+                DB::raw('YEARWEEK(entry_time, 1) as year_week'),
+                DB::raw('MIN(DATE(entry_time)) as week_start'),
+                DB::raw('MAX(DATE(entry_time)) as week_end'),
+                DB::raw('count(*) as total_vehicles'),
+                DB::raw('SUM(CASE WHEN status = "exited" THEN 1 ELSE 0 END) as completed_sessions'),
+                DB::raw('SUM(CASE WHEN status = "exited" AND (is_free_grace = 1 OR parking_fee <= 0 OR duration_minutes <= 15) THEN 1 ELSE 0 END) as free_sessions'),
+                DB::raw('SUM(CASE WHEN status = "exited" AND (is_free_grace = 0 AND parking_fee > 0 AND (duration_minutes > 15 OR duration_minutes IS NULL)) THEN 1 ELSE 0 END) as paid_sessions'),
+                DB::raw('SUM(CASE WHEN status = "exited" THEN parking_fee ELSE 0 END) as fees_assessed'),
+                DB::raw('SUM(CASE WHEN status = "exited" AND payment_status = "paid" THEN parking_fee ELSE 0 END) as revenue_collected'),
+                DB::raw('SUM(CASE WHEN status = "exited" AND payment_status = "unpaid" THEN parking_fee ELSE 0 END) as unpaid_fees')
+            )
+            ->whereNotNull('entry_time')
+            ->groupBy(DB::raw('YEARWEEK(entry_time, 1)'))
+            ->orderBy('year_week', 'DESC')
+            ->take(12)
             ->get();
+
+        // ─── MONTHLY CASH FLOW REPORT ───────────────────────────────
+        $monthlyCashFlow = (clone $query)
+            ->select(
+                DB::raw('DATE_FORMAT(entry_time, "%Y-%m") as month_key'),
+                DB::raw('DATE_FORMAT(entry_time, "%M %Y") as month_label'),
+                DB::raw('count(*) as total_vehicles'),
+                DB::raw('SUM(CASE WHEN status = "exited" THEN 1 ELSE 0 END) as completed_sessions'),
+                DB::raw('SUM(CASE WHEN status = "exited" AND (is_free_grace = 1 OR parking_fee <= 0 OR duration_minutes <= 15) THEN 1 ELSE 0 END) as free_sessions'),
+                DB::raw('SUM(CASE WHEN status = "exited" AND (is_free_grace = 0 AND parking_fee > 0 AND (duration_minutes > 15 OR duration_minutes IS NULL)) THEN 1 ELSE 0 END) as paid_sessions'),
+                DB::raw('SUM(CASE WHEN status = "exited" THEN parking_fee ELSE 0 END) as fees_assessed'),
+                DB::raw('SUM(CASE WHEN status = "exited" AND payment_status = "paid" THEN parking_fee ELSE 0 END) as revenue_collected'),
+                DB::raw('SUM(CASE WHEN status = "exited" AND payment_status = "unpaid" THEN parking_fee ELSE 0 END) as unpaid_fees')
+            )
+            ->whereNotNull('entry_time')
+            ->groupBy(DB::raw('DATE_FORMAT(entry_time, "%Y-%m")'), DB::raw('DATE_FORMAT(entry_time, "%M %Y")'))
+            ->orderBy('month_key', 'DESC')
+            ->take(12)
+            ->get();
+
+        // ─── INDIVIDUAL TRANSACTION RECORDS ─────────────────────────
+        $transactions = (clone $query)
+            ->latest('entry_time')
+            ->take(50)
+            ->get();
+
+        // Trend graph points
+        $trendLabels = [];
+        $trendEntries = [];
+        $trendExits = [];
+        $trendRevenue = [];
+        $trendFree = [];
+
+        // Reverse daily data for chronological chart
+        $chronoDaily = $dailyCashFlow->reverse();
+        foreach ($chronoDaily as $row) {
+            $formattedDate = Carbon::parse($row->report_date)->format('M d');
+            $trendLabels[] = $formattedDate;
+            $trendEntries[] = (int)$row->total_vehicles;
+            $trendExits[] = (int)$row->completed_sessions;
+            $trendRevenue[] = round((float)$row->fees_assessed, 2);
+            $trendFree[] = (int)$row->free_sessions;
+        }
+
+        $activeRate = ParkingRate::getActiveRate();
 
         return view('analytics.index', [
             'range' => $range,
             'rangeLabel' => $rangeLabel,
             'customFrom' => $customFrom,
             'customTo' => $customTo,
-            'totalEntries' => $totalEntries,
-            'totalExits' => $totalExits,
+            'reportType' => $reportType,
+            'totalVehicles' => $totalVehicles,
+            'totalCompletedSessions' => $totalCompletedSessions,
+            'totalFreeSessions' => $totalFreeSessions,
+            'totalPaidSessions' => $totalPaidSessions,
             'currentlyParked' => $currentlyParked,
-            'totalRevenue' => $totalRevenue,
-            'paidRevenue' => $paidRevenue,
-            'unpaidRevenue' => $unpaidRevenue,
+            'totalFeesAssessed' => $totalFeesAssessed,
+            'totalRevenueCollected' => $totalRevenueCollected,
+            'totalUnpaidAssessed' => $totalUnpaidAssessed,
             'avgDurationFormatted' => $avgDurationFormatted,
             'avgConfidence' => round($avgConfidence, 1),
-            'peakHourLabel' => $peakHourLabel,
-            'peakHourCount' => $peakHourCount,
             'vehicleTypes' => $vehicleTypes,
             'gateEntryData' => $gateEntryData,
             'gateExitData' => $gateExitData,
-            'hourlyTraffic' => $hourlyTraffic,
+            'dailyCashFlow' => $dailyCashFlow,
+            'weeklyCashFlow' => $weeklyCashFlow,
+            'monthlyCashFlow' => $monthlyCashFlow,
+            'transactions' => $transactions,
             'trendLabels' => $trendLabels,
             'trendEntries' => $trendEntries,
             'trendExits' => $trendExits,
             'trendRevenue' => $trendRevenue,
-            'dailyReports' => $dailyReports,
-            'topPlates' => $topPlates,
+            'trendFree' => $trendFree,
+            'activeRate' => $activeRate,
         ]);
     }
 
     /**
-     * Export parking logs and analytics to CSV.
+     * Export detailed parking logs and cash flow reports to CSV.
      */
     public function exportCsv(Request $request)
     {
@@ -260,7 +301,7 @@ class AnalyticsController extends Controller
 
         $records = $query->get();
 
-        $filename = 'autotrace_report_' . date('Y-m-d_His') . '.csv';
+        $filename = 'parking_cash_flow_report_' . date('Y-m-d_His') . '.csv';
 
         $headers = [
             'Content-Type' => 'text/csv',
@@ -279,17 +320,24 @@ class AnalyticsController extends Controller
                 'Entry Time',
                 'Exit Time',
                 'Duration (Minutes)',
+                '15-Min Free Grace Applied',
                 'Gate Entry',
                 'Gate Exit',
                 'Status',
-                'Parking Fee (₱)',
+                'Parking Fee Assessed (PHP)',
                 'Payment Status',
+                'Revenue Collected (PHP)',
                 'Entry Confidence (%)',
                 'Exit Confidence (%)',
+                'Rate Details',
                 'Remarks'
             ]);
 
             foreach ($records as $row) {
+                $isFree = $row->isFreeGrace();
+                $fee = (float)($row->parking_fee ?? 0);
+                $collected = ($row->payment_status === 'paid') ? $fee : 0.00;
+
                 fputcsv($file, [
                     $row->id,
                     $row->plate_number,
@@ -297,13 +345,16 @@ class AnalyticsController extends Controller
                     $row->entry_time ? $row->entry_time->format('Y-m-d H:i:s') : 'N/A',
                     $row->exit_time ? $row->exit_time->format('Y-m-d H:i:s') : 'N/A',
                     $row->duration_minutes ?? 0,
+                    $isFree ? 'YES (Free ≤ 15 mins)' : 'NO',
                     $row->gate_entry ?? 'Gate 1',
                     $row->gate_exit ?? 'N/A',
                     ucfirst($row->status ?? 'Unknown'),
-                    number_format((float)($row->parking_fee ?? 0), 2),
+                    number_format($fee, 2),
                     ucfirst($row->payment_status ?? 'Unpaid'),
+                    number_format($collected, 2),
                     $row->entry_confidence ?? 0,
                     $row->exit_confidence ?? 0,
+                    is_array($row->applied_rate_snapshot) ? json_encode($row->applied_rate_snapshot) : '',
                     $row->remarks ?? ''
                 ]);
             }
