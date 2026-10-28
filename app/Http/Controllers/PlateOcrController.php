@@ -58,10 +58,10 @@ class PlateOcrController extends Controller
             fclose($pipes[0]);
         }
 
-        // First boot loads YOLO onto the GPU + fast-plate-ocr, give it up to 90s.
-        $deadline = microtime(true) + 90;
+        // First boot loads YOLO onto the GPU + OCR, check health with short 5s deadline
+        $deadline = microtime(true) + 5;
         while (microtime(true) < $deadline) {
-            usleep(1000000);
+            usleep(300000);
             try {
                 $response = Http::timeout(1)->get($healthUrl);
                 if ($response->successful()) {
@@ -236,10 +236,32 @@ class PlateOcrController extends Controller
                 // Calculate duration in minutes accurately
                 $durationMinutes = $entry->entry_time ? $entry->entry_time->diffInMinutes($exitTimestamp) : 0;
 
-                // Calculate Parking Fee with mandatory 15-minute free grace period
-                $feeBreakdown = $activeRate->calculateFee($durationMinutes, $entry->vehicle_type ?? 'car');
-                $totalFeeAmount = $feeBreakdown['fee'];
-                $isFreeGrace = $feeBreakdown['is_free'];
+                // Check for Monthly Membership Coverage
+                $activeMember = \App\Models\Member::findActiveMemberByPlate($plateNumber) 
+                    ?? \App\Models\Member::findActiveMemberByPlate($entry->plate_number);
+                $isCoveredByMembership = ($activeMember && $activeMember->isCurrentlyActive());
+
+                if ($isCoveredByMembership) {
+                    $totalFeeAmount = 0.00;
+                    $isFreeGrace = false;
+                    $paymentStatus = "paid";
+                    $ruleApplied = "MEMBER COVERED: {$activeMember->full_name} (Valid until " . $activeMember->end_date->format('M d, Y') . ") — ₱0.00 Fee";
+                    $appliedSnapshot = [
+                        'type' => 'monthly_membership',
+                        'member_id' => $activeMember->id,
+                        'member_name' => $activeMember->full_name,
+                        'valid_until' => $activeMember->end_date->format('Y-m-d'),
+                        'fee' => 0.00,
+                    ];
+                } else {
+                    // Calculate Parking Fee with mandatory 15-minute free grace period
+                    $feeBreakdown = $activeRate->calculateFee($durationMinutes, $entry->vehicle_type ?? 'car');
+                    $totalFeeAmount = $feeBreakdown['fee'];
+                    $isFreeGrace = $feeBreakdown['is_free'];
+                    $paymentStatus = $isFreeGrace ? "waived" : "unpaid";
+                    $ruleApplied = $feeBreakdown['rule_applied'];
+                    $appliedSnapshot = $feeBreakdown['snapshot'];
+                }
 
                 // Mark the existing entry as exited
                 $entry->update([
@@ -251,10 +273,13 @@ class PlateOcrController extends Controller
                     "duration_minutes" => $durationMinutes,
                     "parking_fee" => $totalFeeAmount,
                     "is_free_grace" => $isFreeGrace,
-                    "applied_rate_snapshot" => $feeBreakdown['snapshot'],
+                    "is_member" => ($activeMember !== null),
+                    "member_id" => $activeMember ? $activeMember->id : $entry->member_id,
+                    "covered_by_membership" => $isCoveredByMembership,
+                    "applied_rate_snapshot" => $appliedSnapshot,
                     "rate_id" => $activeRate->id,
-                    "payment_status" => $isFreeGrace ? "waived" : "unpaid",
-                    "remarks" => trim(($entry->remarks ?? "") . " | Exited: YOLOv8 & " . ucfirst($ocrEngine) . " (Tier: " . $matchResult['tier'] . ") — " . $feeBreakdown['rule_applied'])
+                    "payment_status" => $paymentStatus,
+                    "remarks" => trim(($entry->remarks ?? "") . " | Exited: YOLOv8 & " . ucfirst($ocrEngine) . " (Tier: " . $matchResult['tier'] . ") — " . $ruleApplied)
                 ]);
 
                 $isMatchFound = true;
@@ -405,6 +430,22 @@ class PlateOcrController extends Controller
                 }
             }
 
+            // Check for Monthly Membership Recognition
+            $activeMember = \App\Models\Member::findActiveMemberByPlate($plateNumber);
+            $memberRecord = $activeMember ?? \App\Models\Member::findMemberRecordByPlate($plateNumber);
+            $isMember = ($activeMember !== null && $activeMember->isCurrentlyActive());
+            $memberId = $memberRecord ? $memberRecord->id : null;
+            $coveredByMembership = $isMember;
+
+            $remarks = "Detected using YOLOv8 & " . ucfirst($ocrEngine);
+            if ($isMember) {
+                $remarks .= " | MEMBER: {$activeMember->full_name} (Expires " . $activeMember->end_date->format('M d, Y') . " — ₱0 Coverage)";
+            } elseif ($memberRecord && $memberRecord->isExpired()) {
+                $remarks .= " | EXPIRED MEMBER: {$memberRecord->full_name} (Expired " . $memberRecord->end_date->format('M d, Y') . " — Standard Tariff)";
+            } elseif ($memberRecord && $memberRecord->payment_status === 'unpaid') {
+                $remarks .= " | UNPAID MEMBER: {$memberRecord->full_name} (Standard Tariff until dues paid)";
+            }
+
             // Persist entry so admins can view it on the dashboard/history
             $entry = PlateEntry::create([
                 "session_id" => ParkingSession::getActive()->id,
@@ -413,9 +454,12 @@ class PlateOcrController extends Controller
                 "entry_time" => $timestamp,
                 "entry_image_path" => $path,
                 "gate_entry" => "Gate 1",
-                "vehicle_type" => "car",
+                "vehicle_type" => $memberRecord ? $memberRecord->vehicle_type : "car",
                 "status" => "entered",
-                "remarks" => "Detected using YOLOv8 & " . ucfirst($ocrEngine)
+                "is_member" => $isMember,
+                "member_id" => $memberId,
+                "covered_by_membership" => $coveredByMembership,
+                "remarks" => $remarks
             ]);
 
             // Generate QR code data
@@ -438,6 +482,7 @@ class PlateOcrController extends Controller
                 "confidence" => $confidence,
                 "ocrEngine" => $ocrEngine,
                 "entry" => $entry,
+                "member" => $activeMember ?? $memberRecord,
             ]);
         } catch (\Exception $e) {
             return redirect()
@@ -713,11 +758,34 @@ class PlateOcrController extends Controller
         $exitTime = now();
         $durationMinutes = $entry->entry_time ? $entry->entry_time->diffInMinutes($exitTime) : 0;
 
-        // Calculate parking fee with 15-minute free grace period
-        $activeRate = ParkingRate::getActiveRate();
-        $feeBreakdown = $activeRate->calculateFee($durationMinutes, $entry->vehicle_type ?? 'car');
-        $parkingFee = $feeBreakdown['fee'];
-        $isFreeGrace = $feeBreakdown['is_free'];
+        // Check for Monthly Membership Coverage
+        $activeMember = \App\Models\Member::findActiveMemberByPlate($entry->plate_number);
+        $isCoveredByMembership = ($activeMember && $activeMember->isCurrentlyActive());
+
+        if ($isCoveredByMembership) {
+            $parkingFee = 0.00;
+            $isFreeGrace = false;
+            $paymentStatus = "paid";
+            $appliedSnapshot = [
+                'type' => 'monthly_membership',
+                'member_id' => $activeMember->id,
+                'member_name' => $activeMember->full_name,
+                'valid_until' => $activeMember->end_date->format('Y-m-d'),
+                'fee' => 0.00,
+            ];
+            $ruleApplied = "MEMBER COVERED: {$activeMember->full_name} (Expires " . $activeMember->end_date->format('M d, Y') . ") — ₱0.00 Fee";
+            $feeFormatted = "₱0.00 (MEMBER PASS)";
+        } else {
+            // Calculate parking fee with 15-minute free grace period
+            $activeRate = ParkingRate::getActiveRate();
+            $feeBreakdown = $activeRate->calculateFee($durationMinutes, $entry->vehicle_type ?? 'car');
+            $parkingFee = $feeBreakdown['fee'];
+            $isFreeGrace = $feeBreakdown['is_free'];
+            $paymentStatus = $isFreeGrace ? "waived" : "unpaid";
+            $appliedSnapshot = $feeBreakdown['snapshot'];
+            $ruleApplied = $feeBreakdown['rule_applied'];
+            $feeFormatted = $isFreeGrace ? "₱0.00 (FREE — 15m Grace)" : "₱" . number_format($parkingFee, 2);
+        }
 
         $entry->update([
             "status" => "exited",
@@ -726,13 +794,15 @@ class PlateOcrController extends Controller
             "duration_minutes" => $durationMinutes,
             "parking_fee" => $parkingFee,
             "is_free_grace" => $isFreeGrace,
-            "applied_rate_snapshot" => $feeBreakdown['snapshot'],
-            "rate_id" => $activeRate->id,
-            "payment_status" => $isFreeGrace ? "waived" : "unpaid",
-            "remarks" => trim(($entry->remarks ?? "") . " | Manual Exit: " . $feeBreakdown['rule_applied']),
+            "is_member" => ($activeMember !== null),
+            "member_id" => $activeMember ? $activeMember->id : $entry->member_id,
+            "covered_by_membership" => $isCoveredByMembership,
+            "applied_rate_snapshot" => $appliedSnapshot,
+            "rate_id" => $entry->rate_id,
+            "payment_status" => $paymentStatus,
+            "remarks" => trim(($entry->remarks ?? "") . " | Manual Exit: " . $ruleApplied),
         ]);
 
-        $feeFormatted = $isFreeGrace ? "₱0.00 (FREE — 15m Grace)" : "₱" . number_format($parkingFee, 2);
         return redirect()->back()->with("success", "Vehicle {$entry->plate_number} marked as exited. Fee: {$feeFormatted}.");
     }
 
@@ -765,13 +835,29 @@ class PlateOcrController extends Controller
         try {
             $user = Auth::user();
 
-            $entry->update([
+            // Re-evaluate membership for the corrected plate number
+            $activeMember = \App\Models\Member::findActiveMemberByPlate($newPlate);
+            $isMember = ($activeMember !== null && $activeMember->isCurrentlyActive());
+
+            $updateData = [
                 'plate_number' => $newPlate,
                 'is_manually_corrected' => true,
                 'corrected_by' => $user?->id,
                 'corrected_at' => now(),
+                'is_member' => $isMember,
+                'member_id' => $activeMember?->id ?? $entry->member_id,
+                'covered_by_membership' => $isMember,
                 'remarks' => trim(($entry->remarks ?? '') . " | Corrected: '{$oldPlate}' -> '{$newPlate}' ({$reason})"),
-            ]);
+            ];
+
+            // If the vehicle was already exited and charged, waive the fee if it is a valid member!
+            if ($isMember && $entry->status === 'exited' && (float)$entry->parking_fee > 0) {
+                $updateData['parking_fee'] = 0.00;
+                $updateData['payment_status'] = 'paid';
+                $updateData['remarks'] .= " | Fee waived: Member {$activeMember->full_name} validated upon correction.";
+            }
+
+            $entry->update($updateData);
 
             PlateEntryAudit::create([
                 'plate_entry_id' => $entry->id,
@@ -781,7 +867,7 @@ class PlateOcrController extends Controller
                 'field_changed' => 'plate_number',
                 'old_value' => $oldPlate,
                 'new_value' => $newPlate,
-                'reason' => $reason,
+                'reason' => $reason . ($isMember ? " (Matched Member: {$activeMember->full_name})" : ""),
                 'ip_address' => $request->ip(),
                 'created_at' => now(),
             ]);
@@ -1071,6 +1157,22 @@ class PlateOcrController extends Controller
                     copy($tempPath, storage_path("app/public/" . $croppedPublicPath));
                 }
 
+                // Check for Monthly Membership Recognition
+                $activeMember = \App\Models\Member::findActiveMemberByPlate($plateNumber);
+                $memberRecord = $activeMember ?? \App\Models\Member::findMemberRecordByPlate($plateNumber);
+                $isMember = ($activeMember !== null && $activeMember->isCurrentlyActive());
+                $memberId = $memberRecord ? $memberRecord->id : null;
+                $coveredByMembership = $isMember;
+
+                $remarks = "Auto-detect [{$cameraId}]: YOLOv8 & " . ucfirst($ocrEngine);
+                if ($isMember) {
+                    $remarks .= " | MEMBER: {$activeMember->full_name} (Expires " . $activeMember->end_date->format('M d, Y') . " — ₱0 Coverage)";
+                } elseif ($memberRecord && $memberRecord->isExpired()) {
+                    $remarks .= " | EXPIRED MEMBER: {$memberRecord->full_name} (Expired " . $memberRecord->end_date->format('M d, Y') . " — Standard Tariff)";
+                } elseif ($memberRecord && $memberRecord->payment_status === 'unpaid') {
+                    $remarks .= " | UNPAID MEMBER: {$memberRecord->full_name} (Standard Tariff until dues paid)";
+                }
+
                 // Create entry record
                 $entry = PlateEntry::create([
                     "session_id" => ParkingSession::getActive()->id,
@@ -1079,9 +1181,12 @@ class PlateOcrController extends Controller
                     "entry_time" => $timestamp,
                     "entry_image_path" => $publicPath,
                     "gate_entry" => $gateNumber,
-                    "vehicle_type" => "car",
+                    "vehicle_type" => $memberRecord ? $memberRecord->vehicle_type : "car",
                     "status" => "entered",
-                    "remarks" => "Auto-detect [{$cameraId}]: YOLOv8 & " . ucfirst($ocrEngine),
+                    "is_member" => $isMember,
+                    "member_id" => $memberId,
+                    "covered_by_membership" => $coveredByMembership,
+                    "remarks" => $remarks,
                 ]);
 
                 // Generate QR data for entry pass
@@ -1108,7 +1213,13 @@ class PlateOcrController extends Controller
                     "entry_id" => $entry->id,
                     "qr_code" => $qrBase64,
                     "image_url" => asset("storage/" . $publicPath),
-                    "message" => "Vehicle {$plateNumber} entry recorded at {$gateNumber}",
+                    "is_member" => $isMember,
+                    "member_name" => $isMember ? $activeMember->full_name : ($memberRecord ? $memberRecord->full_name : null),
+                    "member_status" => $memberRecord ? $memberRecord->computed_status_label : null,
+                    "member_expires" => $memberRecord ? $memberRecord->end_date->format('M d, Y') : null,
+                    "message" => $isMember 
+                        ? "MEMBER {$plateNumber} ({$activeMember->full_name}) entry recorded at {$gateNumber} — ₱0 Coverage"
+                        : "Vehicle {$plateNumber} entry recorded at {$gateNumber}",
                 ]);
             }
 
@@ -1191,13 +1302,36 @@ class PlateOcrController extends Controller
                 if ($entry) {
                     $entryTime = $entry->entry_time;
                     $durationMinutes = $entryTime ? $entryTime->diffInMinutes($timestamp) : 0;
-
-                    // Calculate parking fee with mandatory 15-minute free grace period
-                    $feeBreakdown = $activeRate->calculateFee($durationMinutes, $entry->vehicle_type ?? 'car');
-                    $totalFeeAmount = $feeBreakdown['fee'];
-                    $isFreeGrace = $feeBreakdown['is_free'];
-                    $formattedDuration = $feeBreakdown['formatted_duration'];
                     $tierLabel = $matchResult ? $matchResult['tier'] : 'exact';
+
+                    // Check for Monthly Membership Coverage
+                    $activeMember = \App\Models\Member::findActiveMemberByPlate($effectivePlate)
+                        ?? \App\Models\Member::findActiveMemberByPlate($entry->plate_number);
+                    $isCoveredByMembership = ($activeMember && $activeMember->isCurrentlyActive());
+
+                    if ($isCoveredByMembership) {
+                        $totalFeeAmount = 0.00;
+                        $isFreeGrace = false;
+                        $paymentStatus = "paid";
+                        $formattedDuration = $entryTime ? ($entryTime->diff($timestamp)->h . 'h ' . $entryTime->diff($timestamp)->i . 'm') : "0m";
+                        $ruleApplied = "MEMBER COVERED: {$activeMember->full_name} (Expires " . $activeMember->end_date->format('M d, Y') . ") — ₱0.00 Fee";
+                        $appliedSnapshot = [
+                            'type' => 'monthly_membership',
+                            'member_id' => $activeMember->id,
+                            'member_name' => $activeMember->full_name,
+                            'valid_until' => $activeMember->end_date->format('Y-m-d'),
+                            'fee' => 0.00,
+                        ];
+                    } else {
+                        // Calculate parking fee with mandatory 15-minute free grace period
+                        $feeBreakdown = $activeRate->calculateFee($durationMinutes, $entry->vehicle_type ?? 'car');
+                        $totalFeeAmount = $feeBreakdown['fee'];
+                        $isFreeGrace = $feeBreakdown['is_free'];
+                        $paymentStatus = $isFreeGrace ? "waived" : "unpaid";
+                        $formattedDuration = $feeBreakdown['formatted_duration'];
+                        $ruleApplied = $feeBreakdown['rule_applied'];
+                        $appliedSnapshot = $feeBreakdown['snapshot'];
+                    }
 
                     // Close session
                     $entry->update([
@@ -1209,10 +1343,13 @@ class PlateOcrController extends Controller
                         "duration_minutes" => $durationMinutes,
                         "parking_fee" => $totalFeeAmount,
                         "is_free_grace" => $isFreeGrace,
-                        "applied_rate_snapshot" => $feeBreakdown['snapshot'],
+                        "is_member" => ($activeMember !== null),
+                        "member_id" => $activeMember ? $activeMember->id : $entry->member_id,
+                        "covered_by_membership" => $isCoveredByMembership,
+                        "applied_rate_snapshot" => $appliedSnapshot,
                         "rate_id" => $activeRate->id,
-                        "payment_status" => $isFreeGrace ? "waived" : "unpaid",
-                        "remarks" => trim(($entry->remarks ?? "") . " | Auto-exit [{$cameraId}]: YOLOv8 & " . ucfirst($ocrEngine) . " (Matched: {$tierLabel}) — " . $feeBreakdown['rule_applied']),
+                        "payment_status" => $paymentStatus,
+                        "remarks" => trim(($entry->remarks ?? "") . " | Auto-exit [{$cameraId}]: YOLOv8 & " . ucfirst($ocrEngine) . " (Matched: {$tierLabel}) — " . $ruleApplied),
                     ]);
                 } else {
                     // No matching entry — log as exceptional exit-only detection
@@ -1245,7 +1382,11 @@ class PlateOcrController extends Controller
                     ]);
                 }
 
-                $formattedFee = $isFreeGrace ? "₱0.00 (FREE — 15m Grace)" : "₱" . number_format($totalFeeAmount, 2);
+                if (isset($isCoveredByMembership) && $isCoveredByMembership) {
+                    $formattedFee = "₱0.00 (MEMBER PASS)";
+                } else {
+                    $formattedFee = $isFreeGrace ? "₱0.00 (FREE — 15m Grace)" : "₱" . number_format($totalFeeAmount, 2);
+                }
 
                 // Generate payment QR
                 $paymentPayload = json_encode([

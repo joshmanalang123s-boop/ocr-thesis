@@ -217,25 +217,6 @@
             background: #000000;
             border-color: #000000;
         }
-
-        .system-status-footer {
-            margin-top: 1.5rem;
-            text-align: center;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.45rem;
-            font-size: 0.75rem;
-            color: #6B7280;
-        }
-
-        .status-dot {
-            width: 7px;
-            height: 7px;
-            background: #10B981;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
     </style>
 </head>
 <body>
@@ -324,12 +305,6 @@
                     <i class="ri-arrow-right-line"></i>
                 </button>
             </form>
-
-            <!-- Footer Status -->
-            <div class="system-status-footer">
-                <span class="status-dot"></span>
-                <span>Gates Operational</span>
-            </div>
 
         </div>
     </div>

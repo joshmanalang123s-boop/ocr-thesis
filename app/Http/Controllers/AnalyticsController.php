@@ -98,6 +98,37 @@ class AnalyticsController extends Controller
             ->where('payment_status', 'unpaid')
             ->sum('parking_fee');
 
+        // ─── MEMBERSHIP REVENUE & PERFORMANCE (Requirement 9: Separate Ledger) ───
+        $memberPaymentsQuery = \App\Models\MemberPayment::query();
+        if ($startDate) {
+            $memberPaymentsQuery->where('created_at', '>=', $startDate);
+        }
+        if ($endDate) {
+            $memberPaymentsQuery->where('created_at', '<=', $endDate);
+        }
+
+        $totalMembershipRevenue = (float)(clone $memberPaymentsQuery)
+            ->where('payment_status', 'paid')
+            ->sum('amount');
+
+        $activeMembersCount = \App\Models\Member::active()->count();
+        $expiredMembersCount = \App\Models\Member::expired()->count();
+        $membershipRenewalsCount = (clone $memberPaymentsQuery)
+            ->where('payment_type', 'renewal')
+            ->where('payment_status', 'paid')
+            ->count();
+        $membershipPaymentsCount = (clone $memberPaymentsQuery)
+            ->where('payment_status', 'paid')
+            ->count();
+        $memberSessionsCount = (clone $query)
+            ->where('is_member', true)
+            ->count();
+        $recentMemberPayments = (clone $memberPaymentsQuery)
+            ->with('member')
+            ->orderBy('created_at', 'desc')
+            ->take(15)
+            ->get();
+
         $avgDurationMinutes = (float)(clone $query)
             ->where('status', 'exited')
             ->whereNotNull('duration_minutes')
@@ -237,6 +268,13 @@ class AnalyticsController extends Controller
             'totalFeesAssessed' => $totalFeesAssessed,
             'totalRevenueCollected' => $totalRevenueCollected,
             'totalUnpaidAssessed' => $totalUnpaidAssessed,
+            'totalMembershipRevenue' => $totalMembershipRevenue,
+            'activeMembersCount' => $activeMembersCount,
+            'expiredMembersCount' => $expiredMembersCount,
+            'membershipRenewalsCount' => $membershipRenewalsCount,
+            'membershipPaymentsCount' => $membershipPaymentsCount,
+            'memberSessionsCount' => $memberSessionsCount,
+            'recentMemberPayments' => $recentMemberPayments,
             'avgDurationFormatted' => $avgDurationFormatted,
             'avgConfidence' => round($avgConfidence, 1),
             'vehicleTypes' => $vehicleTypes,

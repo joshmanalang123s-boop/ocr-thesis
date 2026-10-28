@@ -273,8 +273,9 @@
     }
 
     .grace-period-banner {
-        background: #F9FAFB;
-        border: 1px solid #10B981;
+        background: #FFFFFF;
+        border: 1px solid var(--border-color);
+        border-left: 3px solid #10B981;
         border-radius: 6px;
         padding: 0.85rem 1rem;
         margin-bottom: 1.25rem;
@@ -284,9 +285,10 @@
     }
 
     .grace-badge {
-        background: #10B981;
-        color: #FFFFFF;
-        padding: 0.25rem 0.5rem;
+        background: #F9FAFB;
+        color: #111827;
+        border: 1px solid var(--border-color);
+        padding: 0.2rem 0.5rem;
         border-radius: 4px;
         font-size: 0.65rem;
         font-weight: 700;
@@ -299,8 +301,8 @@
 
     .grace-content strong {
         display: block;
-        color: #065F46;
-        font-size: 0.88rem;
+        color: #111827;
+        font-size: 0.875rem;
         margin-bottom: 0.2rem;
     }
 

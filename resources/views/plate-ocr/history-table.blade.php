@@ -69,6 +69,11 @@
                             @endif
                             
                             <span class="plate-badge" style="margin: 0; font-family: 'Courier New', monospace; font-weight: 800; letter-spacing: 1px;">{{ $entry->plate_number }}</span>
+                            @if($entry->is_member || $entry->covered_by_membership)
+                                <span style="background: #EFF6FF; color: #2563EB; border: 1px solid #BFDBFE; font-size: 0.65rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px;" title="Registered Member Vehicle">
+                                    <i class="ri-user-star-line"></i> MEMBER
+                                </span>
+                            @endif
                         </div>
                     </td>
                     <td>

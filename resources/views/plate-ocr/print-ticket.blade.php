@@ -89,5 +89,16 @@
             </div>
         @endif
     </div>
+
+    <script>
+        window.addEventListener('load', function() {
+            if (window.self === window.top) {
+                setTimeout(function() {
+                    window.focus();
+                    window.print();
+                }, 300);
+            }
+        });
+    </script>
 </body>
 </html>

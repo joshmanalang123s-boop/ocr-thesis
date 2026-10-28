@@ -81,4 +81,15 @@ Route::middleware('auth')->group(function () {
         return view("settings", compact("activeRate", "rateAudits"));
     })->name("settings");
 
+    // Monthly Membership Management Routes
+    Route::get("/memberships", [\App\Http\Controllers\MembershipController::class, "index"])->name("memberships.index");
+    Route::post("/memberships", [\App\Http\Controllers\MembershipController::class, "store"])->name("memberships.store");
+    Route::get("/memberships/{id}", [\App\Http\Controllers\MembershipController::class, "show"])->name("memberships.show");
+    Route::put("/memberships/{id}", [\App\Http\Controllers\MembershipController::class, "update"])->name("memberships.update");
+    Route::post("/memberships/{id}/renew", [\App\Http\Controllers\MembershipController::class, "renew"])->name("memberships.renew");
+    Route::post("/memberships/{id}/confirm-payment", [\App\Http\Controllers\MembershipController::class, "confirmPayment"])->name("memberships.confirm-payment");
+    Route::post("/memberships/{id}/toggle-status", [\App\Http\Controllers\MembershipController::class, "toggleStatus"])->name("memberships.toggle-status");
+    Route::post("/memberships/settings", [\App\Http\Controllers\MembershipController::class, "updateSettings"])->name("memberships.settings.update");
+    Route::get("/memberships-export", [\App\Http\Controllers\MembershipController::class, "exportCsv"])->name("memberships.export");
+
 });

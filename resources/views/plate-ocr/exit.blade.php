@@ -26,33 +26,20 @@
         margin-top: 0.25rem;
     }
 
-    .gate-badge-exit {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        padding: 0.3rem 0.75rem;
-        background: #FFF7ED;
-        color: #C2410C;
-        border: 1px solid #FFD8A8;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 700;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-    }
-
     .auto-badge {
         display: inline-flex;
         align-items: center;
         gap: 0.35rem;
-        padding: 0.3rem 0.75rem;
-        background: #EEF2FF;
-        color: #4338CA;
-        border: 1px solid #C7D2FE;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 700;
-        letter-spacing: 0.05em;
+        padding: 0.25rem 0.6rem;
+        background: #F9FAFB;
+        color: #111827;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
         text-transform: uppercase;
     }
 
@@ -382,26 +369,25 @@
 <!-- Page Header -->
 <div class="page-header">
     <h1>
-        <i class="ri-logout-box-r-line" style="color: #F97316;"></i>
+        <i class="ri-logout-box-r-line"></i>
         Gate 2 • Exit Camera Terminal
-        <span class="gate-badge-exit"><i class="ri-checkbox-circle-fill"></i> GATE OUT ONLINE</span>
         <span class="auto-badge" id="autoBadge"><i class="ri-robot-2-line"></i> AUTO-DETECT ACTIVE</span>
     </h1>
     <p>Automated license plate detection — exiting vehicles are scanned, matched, and fees calculated automatically</p>
 </div>
 
 <!-- Mandatory 15-Minute Free Grace Banner Guarantee -->
-<div style="background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%); border: 1.5px solid #10B981; border-radius: 12px; padding: 0.85rem 1.25rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+<div style="background: #FFFFFF; border: 1px solid var(--border-color); border-left: 3px solid #10B981; border-radius: 6px; padding: 0.85rem 1.25rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
     <div style="display: flex; align-items: center; gap: 0.75rem;">
-        <i class="ri-shield-check-fill" style="font-size: 1.5rem; color: #059669;"></i>
+        <i class="ri-shield-check-line" style="font-size: 1.25rem; color: #10B981;"></i>
         <div>
-            <strong style="color: #065F46; font-size: 0.95rem;">Mandatory 15-Minute Free Parking Grace Rule Enforced</strong>
-            <p style="margin: 0; font-size: 0.825rem; color: #047857;">
+            <strong style="color: #111827; font-size: 0.875rem;">Mandatory 15-Minute Free Parking Grace Rule Enforced</strong>
+            <p style="margin: 0; font-size: 0.8125rem; color: #4B5563;">
                 Vehicles exiting in 15 minutes or less are automatically charged <strong>₱0.00 (FREE)</strong>. Duration over 15 minutes is billed at standard facility tariff.
             </p>
         </div>
     </div>
-    <span style="background: #047857; color: white; padding: 0.25rem 0.65rem; border-radius: 6px; font-size: 0.725rem; font-weight: 800; letter-spacing: 0.05em;">RULE GUARANTEE</span>
+    <span style="background: #F9FAFB; color: #111827; border: 1px solid var(--border-color); padding: 0.2rem 0.55rem; border-radius: 4px; font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;">15M Grace Active</span>
 </div>
 
 <!-- Detection Status -->
@@ -501,7 +487,7 @@ class AutoExitScanner {
         this.isAutoScanEnabled = true;
         this.isPendingRequest = false;
 
-        this.scanIntervalMs = 400;  // scan every 400ms for near-instant detection
+        this.scanIntervalMs = 1000; // 1s adaptive interval prevents server starvation
         this.cooldownMs = 4000;
         this.scanTimer = null;
         this.cooldownUntil = 0;
@@ -572,31 +558,43 @@ class AutoExitScanner {
     startAutoScan() {
         this.stopAutoScan();
         this.updateDetectionStatus('scanning', 'Monitoring camera feed for exiting vehicles...');
-        this.scanTimer = setInterval(() => this.autoScanFrame(), this.scanIntervalMs);
+        this.scheduleNextScan(300);
+    }
+
+    scheduleNextScan(delayMs) {
+        if (!this.isAutoScanEnabled || !this.isCameraActive) return;
+        this.stopAutoScan();
+        this.scanTimer = setTimeout(() => this.autoScanFrame(), delayMs);
     }
 
     stopAutoScan() {
-        if (this.scanTimer) { clearInterval(this.scanTimer); this.scanTimer = null; }
+        if (this.scanTimer) { clearTimeout(this.scanTimer); this.scanTimer = null; }
     }
 
     async autoScanFrame() {
         if (!this.isCameraActive || !this.isAutoScanEnabled || this.isPendingRequest) return;
-        if (Date.now() < this.cooldownUntil) return;
-        if (!this.video.videoWidth || !this.video.videoHeight) return;
+        if (Date.now() < this.cooldownUntil) {
+            this.scheduleNextScan(500);
+            return;
+        }
+        if (!this.video.videoWidth || !this.video.videoHeight) {
+            this.scheduleNextScan(500);
+            return;
+        }
 
         this.isPendingRequest = true;
         this.stats.scans++;
         this.updateStats();
 
         try {
-            const maxW = 960;
+            const maxW = 640;
             const scale = Math.min(1, maxW / this.video.videoWidth);
             this.canvas.width = Math.round(this.video.videoWidth * scale);
             this.canvas.height = Math.round(this.video.videoHeight * scale);
             const ctx = this.canvas.getContext('2d');
             ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
 
-            const frameData = this.canvas.toDataURL('image/jpeg', 0.80);
+            const frameData = this.canvas.toDataURL('image/jpeg', 0.75);
 
             const response = await fetch(this.apiUrl, {
                 method: 'POST',
@@ -649,6 +647,9 @@ class AutoExitScanner {
             this.setCameraDot('active');
         } finally {
             this.isPendingRequest = false;
+            if (this.isAutoScanEnabled && this.isCameraActive) {
+                this.scheduleNextScan(this.scanIntervalMs);
+            }
         }
     }
 

@@ -26,33 +26,18 @@
         margin-top: 0.25rem;
     }
 
-    .gate-badge-dual {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        padding: 0.3rem 0.75rem;
-        background: #EFF6FF;
-        color: #2563EB;
-        border: 1px solid #BFDBFE;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 700;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-    }
-
     .auto-badge {
         display: inline-flex;
         align-items: center;
         gap: 0.35rem;
-        padding: 0.3rem 0.75rem;
-        background: #EEF2FF;
-        color: #4338CA;
-        border: 1px solid #C7D2FE;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 700;
-        letter-spacing: 0.05em;
+        padding: 0.25rem 0.6rem;
+        background: #F9FAFB;
+        color: #111827;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
         text-transform: uppercase;
     }
 
@@ -72,31 +57,28 @@
     }
 
     .stat-card {
-        background: var(--bg-secondary);
+        background: #FFFFFF;
         border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 1.1rem;
+        border-radius: 8px;
+        padding: 1rem 1.15rem;
         display: flex;
         align-items: center;
         gap: 0.85rem;
-        box-shadow: var(--card-shadow);
     }
 
     .stat-icon {
-        width: 42px;
-        height: 42px;
-        border-radius: 10px;
+        width: 36px;
+        height: 36px;
+        border-radius: 6px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.2rem;
+        font-size: 1.15rem;
         flex-shrink: 0;
+        background: #F9FAFB;
+        border: 1px solid var(--border-color);
+        color: #111827;
     }
-
-    .stat-icon.scan { background: #EEF2FF; color: #4F46E5; }
-    .stat-icon.entry { background: #ECFDF5; color: #10B981; }
-    .stat-icon.exit { background: #FFF7ED; color: #F97316; }
-    .stat-icon.skipped { background: #FEF9C3; color: #CA8A04; }
 
     .stat-value {
         font-size: 1.4rem;
@@ -128,21 +110,12 @@
     }
 
     .dual-card {
-        background: var(--bg-secondary);
+        background: #FFFFFF;
         border: 1px solid var(--border-color);
-        border-radius: 14px;
-        box-shadow: var(--card-shadow);
+        border-radius: 8px;
         padding: 1.25rem;
         display: flex;
         flex-direction: column;
-    }
-
-    .dual-card.entry {
-        border-top: 3px solid #10B981;
-    }
-
-    .dual-card.exit {
-        border-top: 3px solid #F97316;
     }
 
     .dual-card-header {
@@ -155,15 +128,25 @@
     }
 
     .dual-card-title {
-        font-size: 1.05rem;
-        font-weight: 800;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text-primary);
         display: flex;
         align-items: center;
         gap: 0.5rem;
     }
 
-    .dual-card-title.entry { color: #10B981; }
-    .dual-card-title.exit { color: #F97316; }
+    .gate-type-tag {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        padding: 0.15rem 0.5rem;
+        border-radius: 4px;
+        background: #F3F4F6;
+        color: #374151;
+        border: 1px solid var(--border-color);
+    }
 
     .camera-select-box {
         font-size: 0.8rem;
@@ -292,33 +275,32 @@
         justify-content: center;
         gap: 0.4rem;
         padding: 0.55rem 0.75rem;
-        border-radius: 8px;
+        border-radius: 6px;
         font-weight: 600;
         font-size: 0.8125rem;
         border: 1px solid var(--border-color);
-        background: var(--bg-primary);
-        color: var(--text-secondary);
+        background: #FFFFFF;
+        color: var(--text-primary);
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: all 0.15s ease;
     }
 
     .btn-gate-ctrl:hover {
-        background: #F1F5F9;
-        color: var(--text-primary);
+        background: #F9FAFB;
+        border-color: #111827;
     }
 
     .btn-gate-ctrl.paused {
-        background: #FEF3C7;
-        border-color: #FCD34D;
-        color: #92400E;
+        background: #FFFBEB;
+        border-color: #FDE68A;
+        color: #B45309;
     }
 
     /* Detection Event Log */
     .detection-log {
-        background: var(--bg-secondary);
+        background: #FFFFFF;
         border: 1px solid var(--border-color);
-        border-radius: 14px;
-        box-shadow: var(--card-shadow);
+        border-radius: 8px;
         overflow: hidden;
     }
 
@@ -326,12 +308,13 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 1rem 1.25rem;
+        padding: 0.85rem 1.25rem;
         border-bottom: 1px solid var(--border-color);
+        background: #FFFFFF;
     }
 
     .detection-log-header h3 {
-        font-size: 0.95rem;
+        font-size: 0.9375rem;
         font-weight: 700;
         color: var(--text-primary);
         display: flex;
@@ -340,12 +323,13 @@
     }
 
     .detection-log-header .count-badge {
-        font-size: 0.725rem;
+        font-size: 0.6875rem;
         font-weight: 700;
         padding: 2px 8px;
-        border-radius: 12px;
-        background: #EEF2FF;
-        color: #4F46E5;
+        border-radius: 4px;
+        background: #F3F4F6;
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
     }
 
     .detection-log-body {
@@ -455,9 +439,8 @@
 <!-- Page Header -->
 <div class="page-header">
     <h1>
-        <i class="ri-vidicon-line" style="color: #2563EB;"></i>
+        <i class="ri-vidicon-line"></i>
         Dual Live Cameras • Automated Gate Control
-        <span class="gate-badge-dual"><i class="ri-checkbox-circle-fill"></i> DUAL GATES ONLINE</span>
         <span class="auto-badge" id="autoBadge"><i class="ri-robot-2-line"></i> AUTO-DETECT ACTIVE</span>
     </h1>
     <p>Simultaneous automated license plate detection for Gate 1 (Entry) and Gate 2 (Exit)</p>
@@ -498,11 +481,12 @@
 <!-- Dual Camera Grid -->
 <div class="dual-camera-grid">
     <!-- GATE 1: Entry Camera -->
-    <div class="dual-card entry">
+    <div class="dual-card">
         <div class="dual-card-header">
-            <div class="dual-card-title entry">
+            <div class="dual-card-title">
                 <i class="ri-login-box-line"></i>
-                <span>Gate 1 • Entry Camera</span>
+                <span>Gate 1</span>
+                <span class="gate-type-tag">Entry</span>
             </div>
             <select class="camera-select-box" id="gate1CamSelect">
                 <option value="">Detecting Cameras...</option>
@@ -539,11 +523,12 @@
     </div>
 
     <!-- GATE 2: Exit Camera -->
-    <div class="dual-card exit">
+    <div class="dual-card">
         <div class="dual-card-header">
-            <div class="dual-card-title exit">
+            <div class="dual-card-title">
                 <i class="ri-logout-box-r-line"></i>
-                <span>Gate 2 • Exit Camera</span>
+                <span>Gate 2</span>
+                <span class="gate-type-tag">Exit</span>
             </div>
             <select class="camera-select-box" id="gate2CamSelect">
                 <option value="">Detecting Cameras...</option>
@@ -584,7 +569,7 @@
 <div class="detection-log">
     <div class="detection-log-header">
         <h3>
-            <i class="ri-list-check-3" style="color: #2563EB;"></i>
+            <i class="ri-list-check-3"></i>
             Real-Time Gate Activity Log
             <span class="count-badge" id="logCount">0</span>
         </h3>
@@ -642,18 +627,20 @@ const DualStats = {
         const iconClass = isEntry ? 'entry' : (result.is_match_found ? 'exit-matched' : 'exit');
         const iconName = isEntry ? 'ri-login-box-line' : 'ri-logout-box-r-line';
         const tagClass = isEntry ? 'entry' : 'exit';
-        const tagText = isEntry ? 'ENTRY' : (result.formatted_fee || 'EXIT');
+        const tagText = isEntry ? (result.is_member ? 'MEMBER ₱0' : 'ENTRY') : (result.is_member ? 'MEMBER ₱0' : (result.formatted_fee || 'EXIT'));
+        const memberBadge = result.is_member ? '<span style="background: #EFF6FF; color: #2563EB; border: 1px solid #BFDBFE; font-size: 0.65rem; font-weight: 700; padding: 1px 5px; border-radius: 4px; margin-left: 6px;">MEMBER</span>' : '';
 
         const item = document.createElement('div');
         item.className = 'log-item';
         item.innerHTML = `
             <div class="log-icon ${iconClass}"><i class="${iconName}"></i></div>
             <div class="log-details">
-                <div class="log-plate">${result.plate}</div>
+                <div class="log-plate">${result.plate} ${memberBadge}</div>
                 <div class="log-meta">
                     ${result.formatted_time} • ${result.gate}
                     ${!isEntry && result.duration ? ' • ' + result.duration : ''}
                     • ${result.confidence}% conf
+                    ${result.is_member && result.member_name ? ' • ' + result.member_name : ''}
                 </div>
             </div>
             <span class="log-tag ${tagClass}">${tagText}</span>
@@ -697,7 +684,7 @@ class GateCameraScanner {
         this.isAutoScanEnabled = true;
         this.isPendingRequest = false;
 
-        this.scanIntervalMs = 500;  // scan every 500ms for fast dual gate detection
+        this.scanIntervalMs = 1200;  // 1.2s adaptive interval prevents server starvation
         this.cooldownMs = 4000;
         this.scanTimer = null;
         this.cooldownUntil = 0;
@@ -788,34 +775,45 @@ class GateCameraScanner {
     startAutoScan() {
         this.stopAutoScan();
         this.updateStatusBox('scanning', `${this.gateTitle} monitoring camera feed...`);
+        this.scheduleNextScan(300);
+    }
 
-        this.scanTimer = setInterval(() => this.autoScanFrame(), this.scanIntervalMs);
+    scheduleNextScan(delayMs) {
+        if (!this.isAutoScanEnabled || !this.isCameraActive) return;
+        this.stopAutoScan();
+        this.scanTimer = setTimeout(() => this.autoScanFrame(), delayMs);
     }
 
     stopAutoScan() {
         if (this.scanTimer) {
-            clearInterval(this.scanTimer);
+            clearTimeout(this.scanTimer);
             this.scanTimer = null;
         }
     }
 
     async autoScanFrame() {
         if (!this.isCameraActive || !this.isAutoScanEnabled || this.isPendingRequest) return;
-        if (Date.now() < this.cooldownUntil) return;
-        if (!this.video.videoWidth || !this.video.videoHeight) return;
+        if (Date.now() < this.cooldownUntil) {
+            this.scheduleNextScan(500);
+            return;
+        }
+        if (!this.video.videoWidth || !this.video.videoHeight) {
+            this.scheduleNextScan(500);
+            return;
+        }
 
         this.isPendingRequest = true;
         DualStats.addScan();
 
         try {
-            const maxW = 960;
+            const maxW = 640;
             const scale = Math.min(1, maxW / this.video.videoWidth);
             this.canvas.width = Math.round(this.video.videoWidth * scale);
             this.canvas.height = Math.round(this.video.videoHeight * scale);
             const ctx = this.canvas.getContext('2d');
             ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
 
-            const frameData = this.canvas.toDataURL('image/jpeg', 0.80);
+            const frameData = this.canvas.toDataURL('image/jpeg', 0.75);
 
             const response = await fetch(this.apiUrl, {
                 method: 'POST',
@@ -840,10 +838,18 @@ class GateCameraScanner {
                 } else {
                     if (this.cameraType === 'entry') {
                         DualStats.addEntry(result);
-                        this.updateStatusBox('found-entry', `✓ Entry recorded: ${result.plate} (${result.confidence}%)`);
+                        if (result.is_member) {
+                            this.updateStatusBox('found-entry', `★ MEMBER: ${result.plate} (${result.member_name || 'Active'}) — ₱0 Coverage`);
+                        } else {
+                            this.updateStatusBox('found-entry', `✓ Entry recorded: ${result.plate} (${result.confidence}%)`);
+                        }
                     } else {
                         DualStats.addExit(result);
-                        this.updateStatusBox('found-exit', `✓ Exit recorded: ${result.plate} — Fee: ${result.formatted_fee || '₱50.00'}`);
+                        if (result.is_member) {
+                            this.updateStatusBox('found-exit', `★ MEMBER PASS: ${result.plate} — ₱0.00 Fee`);
+                        } else {
+                            this.updateStatusBox('found-exit', `✓ Exit recorded: ${result.plate} — Fee: ${result.formatted_fee || '₱50.00'}`);
+                        }
                     }
 
                     this.cooldownUntil = Date.now() + this.cooldownMs;
@@ -861,6 +867,9 @@ class GateCameraScanner {
             this.setDot('active');
         } finally {
             this.isPendingRequest = false;
+            if (this.isAutoScanEnabled && this.isCameraActive) {
+                this.scheduleNextScan(this.scanIntervalMs);
+            }
         }
     }
 

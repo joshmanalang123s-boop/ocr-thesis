@@ -109,28 +109,6 @@
             margin-top: 2px;
         }
 
-        .system-status-pill {
-            margin: 0.85rem 1.25rem 0.25rem 1.25rem;
-            padding: 0.4rem 0.65rem;
-            background: #F9FAFB;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.75rem;
-            color: #111827;
-            font-weight: 600;
-        }
-
-        .status-dot {
-            width: 7px;
-            height: 7px;
-            background: #10B981;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-
         .sidebar-nav {
             padding: 0.85rem 0;
             flex: 1;
@@ -705,11 +683,6 @@
             </a>
         </div>
 
-        <div class="system-status-pill">
-            <span class="status-dot"></span>
-            <span>Gates Operational</span>
-        </div>
-
         <nav class="sidebar-nav">
             <div class="nav-section">
                 <h3 class="nav-section-title">Gate Management</h3>
@@ -742,6 +715,12 @@
                         <a href="{{ route('plate-ocr.history') }}" class="nav-link {{ request()->routeIs('plate-ocr.history') ? 'active' : '' }}">
                             <span class="nav-icon"><i class="ri-file-list-3-line"></i></span>
                             <span>Parking Logs</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('memberships.index') }}" class="nav-link {{ request()->routeIs('memberships*') ? 'active' : '' }}">
+                            <span class="nav-icon"><i class="ri-user-star-line"></i></span>
+                            <span>Memberships</span>
                         </a>
                     </li>
                 </ul>
@@ -797,18 +776,12 @@
                     <i class="ri-time-line"></i>
                     <span id="liveClockDisplay">--:--:--</span>
                 </div>
-                <div style="display: flex; align-items: center; gap: 0.65rem;">
-                    <div class="header-user">
-                        <div class="user-avatar">{{ strtoupper(substr(Auth::user()->name ?? 'admin', 0, 2)) }}</div>
-                        <div class="user-info">
-                            <div class="user-name">{{ Auth::user()->name ?? 'admin' }}</div>
-                            <div class="user-role">System Admin</div>
-                        </div>
+                <div class="header-user">
+                    <div class="user-avatar">{{ strtoupper(substr(Auth::user()->name ?? 'admin', 0, 2)) }}</div>
+                    <div class="user-info">
+                        <div class="user-name">{{ Auth::user()->name ?? 'admin' }}</div>
+                        <div class="user-role">System Admin</div>
                     </div>
-                    <button type="button" class="btn-header-logout" onclick="document.getElementById('logout-form').submit();" title="Log Out">
-                        <i class="ri-logout-box-r-line"></i>
-                        <span>Logout</span>
-                    </button>
                 </div>
             </div>
         </header>

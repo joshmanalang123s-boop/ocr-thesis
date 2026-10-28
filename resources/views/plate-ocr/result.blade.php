@@ -229,6 +229,25 @@
             <h3>Digital Entry Gate Pass</h3>
         </div>
         <div class="result-card-body" style="text-align: center;">
+            @if(isset($member) && $member)
+                @if($member->isCurrentlyActive())
+                    <div style="background: #ECFDF5; border: 1.5px solid #10B981; border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; text-align: left;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <i class="ri-user-star-fill" style="font-size: 1.5rem; color: #059669;"></i>
+                            <div>
+                                <div style="font-weight: 800; color: #065F46; font-size: 0.95rem;">REGISTERED MONTHLY MEMBER</div>
+                                <div style="font-size: 0.8125rem; color: #047857;">{{ $member->full_name }} • Valid until {{ $member->end_date->format('M d, Y') }}</div>
+                            </div>
+                        </div>
+                        <span style="background: #10B981; color: white; padding: 0.25rem 0.65rem; border-radius: 9999px; font-weight: 700; font-size: 0.75rem;">₱0 COVERAGE</span>
+                    </div>
+                @elseif($member->isExpired())
+                    <div style="background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1.25rem; text-align: left; font-size: 0.8125rem; color: #991B1B;">
+                        <strong>EXPIRED MEMBERSHIP:</strong> {{ $member->full_name }} (Expired {{ $member->end_date->format('M d, Y') }}). Standard parking tariff will apply.
+                    </div>
+                @endif
+            @endif
+
             <div class="plate-hero-badge">
                 <div class="number">{{ $plateNumber }}</div>
                 <div style="font-size: 0.78125rem; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.05em;">

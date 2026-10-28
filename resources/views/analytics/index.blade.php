@@ -5,113 +5,84 @@
 
 @section('additional-styles')
 <style>
-    /* Hero Header */
-    .analytics-hero {
-        background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
-        border-radius: 16px;
-        padding: 1.75rem 2rem;
-        color: white;
-        margin-bottom: 2rem;
-        box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
+    /* Header */
+    .analytics-header {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: space-between;
         flex-wrap: wrap;
-        gap: 1.5rem;
-        position: relative;
-        overflow: hidden;
+        gap: 1.25rem;
+        margin-bottom: 1.5rem;
     }
 
-    .analytics-hero::before {
-        content: '';
-        position: absolute;
-        right: -60px;
-        top: -60px;
-        width: 280px;
-        height: 280px;
-        background: radial-gradient(circle, rgba(16, 185, 129, 0.22) 0%, rgba(0, 0, 0, 0) 70%);
-        pointer-events: none;
-    }
-
-    .hero-content h1 {
-        font-size: 1.65rem;
-        font-weight: 800;
+    .analytics-title {
+        font-size: 1.625rem;
+        font-weight: 700;
+        color: #111827;
+        margin: 0 0 0.35rem 0;
         letter-spacing: -0.02em;
-        margin-bottom: 0.35rem;
+    }
+
+    .analytics-subtitle {
+        color: #6B7280;
+        font-size: 0.875rem;
+        margin: 0;
+        line-height: 1.4;
+    }
+
+    .analytics-actions {
         display: flex;
         align-items: center;
         gap: 0.625rem;
-    }
-
-    .hero-content p {
-        color: #94A3B8;
-        font-size: 0.875rem;
-        margin: 0;
-    }
-
-    .hero-actions {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
         flex-wrap: wrap;
-        z-index: 2;
     }
 
-    .btn-report-action {
+    .btn-action-outline {
         display: inline-flex;
         align-items: center;
-        gap: 0.5rem;
-        padding: 0.65rem 1.15rem;
-        border-radius: 10px;
-        font-weight: 700;
-        font-size: 0.875rem;
-        border: none;
+        gap: 0.45rem;
+        padding: 0.5rem 0.95rem;
+        border-radius: 6px;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        background: #FFFFFF;
+        border: 1px solid #E5E7EB;
+        color: #111827;
         cursor: pointer;
-        transition: all 0.2s ease;
         text-decoration: none;
+        transition: all 0.15s ease;
     }
 
-    .btn-report-action.primary {
-        background: #10B981;
-        color: white;
-        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    .btn-action-outline:hover {
+        background: #F9FAFB;
+        border-color: #D1D5DB;
+        color: #111827;
     }
 
-    .btn-report-action.primary:hover {
-        background: #059669;
-        transform: translateY(-1px);
+    .btn-action-outline.blue-border {
+        border-color: #BFDBFE;
+        color: #2563EB;
+        font-weight: 600;
     }
 
-    .btn-report-action.blue {
-        background: #2563EB;
-        color: white;
-        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    .btn-action-outline.blue-border:hover {
+        background: #EFF6FF;
+        border-color: #93C5FD;
+        color: #1D4ED8;
     }
 
-    .btn-report-action.blue:hover {
-        background: #1D4ED8;
-        transform: translateY(-1px);
-    }
-
-    .btn-report-action.secondary {
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        backdrop-filter: blur(8px);
-    }
-
-    .btn-report-action.secondary:hover {
-        background: rgba(255, 255, 255, 0.18);
-        transform: translateY(-1px);
+    .btn-action-outline i {
+        font-size: 1rem;
     }
 
     /* Grace Rule Guarantee Alert */
     .grace-guarantee-alert {
-        background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
-        border: 1.5px solid #10B981;
-        border-radius: 12px;
-        padding: 0.85rem 1.25rem;
-        margin-bottom: 1.75rem;
+        background: #FFFFFF;
+        border: 1px solid #E5E7EB;
+        border-left: 3px solid #2563EB;
+        border-radius: 8px;
+        padding: 0.9rem 1.25rem;
+        margin-bottom: 1.25rem;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -126,56 +97,56 @@
     }
 
     .grace-guarantee-info i {
-        font-size: 1.5rem;
-        color: #059669;
+        font-size: 1.25rem;
+        color: #2563EB;
+        flex-shrink: 0;
     }
 
     /* Filter Bar */
     .filter-bar {
-        background: var(--bg-secondary);
-        border: 1px solid var(--border-color);
-        border-radius: 14px;
-        padding: 1rem 1.25rem;
-        margin-bottom: 2rem;
+        background: #FFFFFF;
+        border: 1px solid #E5E7EB;
+        border-radius: 8px;
+        padding: 0.65rem 1rem;
+        margin-bottom: 1.25rem;
         display: flex;
         align-items: center;
         justify-content: space-between;
         flex-wrap: wrap;
         gap: 1rem;
-        box-shadow: var(--card-shadow);
     }
 
     .filter-pills {
         display: flex;
         align-items: center;
-        gap: 0.4rem;
+        gap: 0.25rem;
         flex-wrap: wrap;
     }
 
     .filter-pill {
         display: inline-flex;
         align-items: center;
-        gap: 0.35rem;
-        padding: 0.45rem 0.95rem;
-        border-radius: 20px;
+        padding: 0.35rem 0.75rem;
+        border-radius: 6px;
         font-size: 0.8125rem;
-        font-weight: 600;
-        color: var(--text-secondary);
+        font-weight: 500;
+        color: #374151;
         text-decoration: none;
-        border: 1px solid transparent;
         transition: all 0.15s ease;
     }
 
     .filter-pill:hover {
-        color: var(--text-primary);
-        background: #F1F5F9;
+        color: #111827;
+        background: #F3F4F6;
     }
 
     .filter-pill.active {
-        background: #2563EB;
-        color: white;
-        font-weight: 700;
-        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+        background: #EFF6FF;
+        color: #2563EB;
+        border: 1.5px solid #60A5FA;
+        border-radius: 9999px;
+        padding: 0.3rem 0.95rem;
+        font-weight: 600;
     }
 
     .custom-date-form {
@@ -185,21 +156,38 @@
     }
 
     .date-input {
-        padding: 0.45rem 0.75rem;
-        border-radius: 8px;
-        border: 1px solid var(--border-color);
-        background: var(--bg-primary);
-        color: var(--text-primary);
+        padding: 0.35rem 0.65rem;
+        border-radius: 6px;
+        border: 1px solid #E5E7EB;
+        background: #FFFFFF;
+        color: #374151;
         font-size: 0.8125rem;
         font-weight: 500;
+        outline: none;
     }
 
-    /* 7 Summary KPI Cards Grid */
+    .btn-filter-submit {
+        background: #BFDBFE;
+        color: #1D4ED8;
+        font-weight: 600;
+        font-size: 0.8125rem;
+        border: none;
+        border-radius: 6px;
+        padding: 0.38rem 1rem;
+        cursor: pointer;
+        transition: background 0.15s ease;
+    }
+
+    .btn-filter-submit:hover {
+        background: #93C5FD;
+    }
+
+    /* 8 Summary KPI Cards Grid */
     .kpi-grid-7 {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 1.25rem;
-        margin-bottom: 2rem;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
     }
 
     @media (max-width: 1200px) {
@@ -210,87 +198,44 @@
     }
 
     .kpi-card {
-        background: var(--bg-secondary);
-        border: 1px solid var(--border-color);
-        border-radius: 14px;
+        background: #FFFFFF;
+        border: 1px solid #E5E7EB;
+        border-radius: 8px;
         padding: 1.25rem;
-        box-shadow: var(--card-shadow);
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        position: relative;
-        overflow: hidden;
+        min-height: 116px;
     }
-
-    .kpi-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.08);
-    }
-
-    .kpi-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-    }
-
-    .kpi-card.blue::before { background: #3B82F6; }
-    .kpi-card.emerald::before { background: #10B981; }
-    .kpi-card.purple::before { background: #8B5CF6; }
-    .kpi-card.amber::before { background: #F59E0B; }
-    .kpi-card.cyan::before { background: #06B6D4; }
-    .kpi-card.slate::before { background: #64748B; }
 
     .kpi-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 0.75rem;
+        margin-bottom: 0.5rem;
     }
 
     .kpi-title {
-        font-size: 0.75rem;
+        font-size: 0.6875rem;
         font-weight: 700;
-        color: var(--text-tertiary);
+        color: #6B7280;
         text-transform: uppercase;
         letter-spacing: 0.05em;
     }
 
-    .kpi-icon {
-        width: 36px;
-        height: 36px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.15rem;
-    }
-
-    .kpi-icon.blue { background: #EFF6FF; color: #3B82F6; }
-    .kpi-icon.emerald { background: #ECFDF5; color: #10B981; }
-    .kpi-icon.purple { background: #F5F3FF; color: #8B5CF6; }
-    .kpi-icon.amber { background: #FEF3C7; color: #D97706; }
-    .kpi-icon.cyan { background: #ECFEFF; color: #06B6D4; }
-    .kpi-icon.slate { background: #F1F5F9; color: #64748B; }
-
     .kpi-value {
-        font-size: 1.55rem;
+        font-size: 1.75rem;
         font-weight: 800;
-        color: var(--text-primary);
+        color: #111827;
         letter-spacing: -0.02em;
         line-height: 1.1;
         margin-bottom: 0.35rem;
     }
 
+    .kpi-value.compact {
+        font-size: 1.35rem;
+    }
+
     .kpi-sub {
         font-size: 0.75rem;
-        color: var(--text-secondary);
-        display: flex;
-        align-items: center;
-        gap: 0.35rem;
+        color: #6B7280;
     }
 
     /* Charts Layout */
@@ -490,7 +435,7 @@
     /* Print Styles */
     @media print {
         body { background: white !important; color: black !important; }
-        .sidebar, .navbar, .analytics-hero::before, .filter-bar, .hero-actions, .report-tabs-nav { display: none !important; }
+        .sidebar, .navbar, .filter-bar, .analytics-actions, .report-tabs-nav { display: none !important; }
         .main-content { margin: 0 !important; padding: 0 !important; width: 100% !important; }
         .kpi-card, .chart-card, .report-table-card { box-shadow: none !important; border: 1px solid #ccc !important; }
         .report-tab-panel { display: block !important; margin-bottom: 2rem !important; }
@@ -499,25 +444,22 @@
 @endsection
 
 @section('content')
-<!-- Analytics Hero Header -->
-<div class="analytics-hero">
-    <div class="hero-content">
-        <h1>
-            <i class="ri-money-dollar-box-line" style="color: #34D399;"></i>
-            Cash Flow & Operational Revenue Analytics
-        </h1>
-        <p>Facility cash inflow tracking, 15-minute free grace auditing, rate performance, and vehicle throughput intelligence</p>
+<!-- Analytics Header -->
+<div class="analytics-header">
+    <div>
+        <h1 class="analytics-title">Cash Flow & Operational Revenue Analytics</h1>
+        <p class="analytics-subtitle">Facility cash inflow tracking, 15-minute free grace auditing, rate performance, and vehicle throughput intelligence.</p>
     </div>
-    <div class="hero-actions">
-        <button type="button" class="btn-report-action blue" onclick="openChangeFeeModal()">
-            <i class="ri-edit-2-line"></i>
+    <div class="analytics-actions">
+        <button type="button" class="btn-action-outline blue-border" onclick="openChangeFeeModal()">
+            <i class="ri-edit-line"></i>
             <span>Change Parking Fee</span>
         </button>
-        <a href="{{ route('analytics.export', ['range' => $range, 'from' => $customFrom, 'to' => $customTo]) }}" class="btn-report-action primary">
-            <i class="ri-file-excel-2-line"></i>
+        <a href="{{ route('analytics.export', ['range' => $range, 'from' => $customFrom, 'to' => $customTo]) }}" class="btn-action-outline">
+            <i class="ri-download-line"></i>
             <span>Export CSV</span>
         </a>
-        <button type="button" class="btn-report-action secondary" onclick="window.print()">
+        <button type="button" class="btn-action-outline" onclick="window.print()">
             <i class="ri-printer-line"></i>
             <span>Print Report</span>
         </button>
@@ -527,23 +469,23 @@
 <!-- Mandatory 15-Minute Free Grace Banner Guarantee -->
 <div class="grace-guarantee-alert">
     <div class="grace-guarantee-info">
-        <i class="ri-shield-check-fill"></i>
+        <i class="ri-information-line"></i>
         <div>
-            <strong style="color: #065F46; font-size: 0.95rem;">Mandatory 15-Minute Free Parking Grace Rule Enforced</strong>
-            <p style="margin: 0; font-size: 0.825rem; color: #047857;">
+            <div style="font-weight: 700; color: #111827; font-size: 0.875rem; margin-bottom: 0.15rem;">Mandatory 15-Minute Free Parking Grace Rule Enforced</div>
+            <div style="font-size: 0.8125rem; color: #4B5563;">
                 Vehicles exiting in 15 minutes or less are assessed <strong>₱0.00</strong> and contribute ₱0.00 to revenue collections while remaining fully audited in the ledger.
-            </p>
+            </div>
         </div>
     </div>
-    <div style="font-size: 0.8125rem; color: #065F46; font-weight: 600;">
-        Active Base: <strong>₱{{ number_format($activeRate->base_rate ?? 50, 2) }}</strong> (First {{ $activeRate->base_hours ?? 3 }}h) • Succeeding: <strong>+₱{{ number_format($activeRate->hourly_rate ?? 20, 2) }}/h</strong>
+    <div style="font-size: 0.8125rem; color: #374151; font-weight: 500; white-space: nowrap;">
+        Active Base: <strong>₱{{ number_format($activeRate->base_rate ?? 50, 2) }}</strong> (First {{ $activeRate->base_hours ?? 3 }}h) • Succeeding: <strong>₱{{ number_format($activeRate->hourly_rate ?? 20, 2) }}/h</strong>
     </div>
 </div>
 
 <!-- Date Range Filter Bar -->
 <div class="filter-bar">
     <div class="filter-pills">
-        <span style="font-size: 0.8125rem; font-weight: 700; color: var(--text-tertiary); margin-right: 0.35rem;">REPORT PERIOD:</span>
+        <span style="font-size: 0.75rem; font-weight: 600; color: #6B7280; margin-right: 0.5rem; letter-spacing: 0.03em;">REPORT PERIOD:</span>
         <a href="{{ route('analytics', ['range' => 'today']) }}" class="filter-pill {{ $range === 'today' ? 'active' : '' }}">Today</a>
         <a href="{{ route('analytics', ['range' => '7days']) }}" class="filter-pill {{ $range === '7days' ? 'active' : '' }}">Last 7 Days</a>
         <a href="{{ route('analytics', ['range' => '30days']) }}" class="filter-pill {{ $range === '30days' ? 'active' : '' }}">Last 30 Days</a>
@@ -554,112 +496,86 @@
     <form method="GET" action="{{ route('analytics') }}" class="custom-date-form">
         <input type="hidden" name="range" value="custom">
         <input type="date" name="from" value="{{ $customFrom }}" class="date-input" title="From Date">
-        <span style="color: var(--text-tertiary); font-size: 0.8125rem;">to</span>
+        <span style="color: #6B7280; font-size: 0.8125rem;">to</span>
         <input type="date" name="to" value="{{ $customTo }}" class="date-input" title="To Date">
-        <button type="submit" class="btn-report-action blue" style="padding: 0.45rem 0.95rem; font-size: 0.8125rem;">
+        <button type="submit" class="btn-filter-submit">
             Filter
         </button>
     </form>
 </div>
 
-<!-- 7 Report Summary Cards (Requirement 7) -->
+<!-- 8 Report Summary Cards (Grid) -->
 <div class="kpi-grid-7">
     <!-- Card 1: Total Vehicles Recorded -->
-    <div class="kpi-card slate">
+    <div class="kpi-card">
         <div class="kpi-header">
-            <span class="kpi-title">1. Total Vehicles</span>
-            <div class="kpi-icon slate"><i class="ri-car-fill"></i></div>
+            <span class="kpi-title">1. TOTAL VEHICLES</span>
         </div>
         <div class="kpi-value">{{ number_format($totalVehicles) }}</div>
-        <div class="kpi-sub">
-            <span>All vehicles recorded in period</span>
-        </div>
+        <div class="kpi-sub">All vehicles recorded in period</div>
     </div>
 
     <!-- Card 2: Completed Sessions -->
-    <div class="kpi-card blue">
+    <div class="kpi-card">
         <div class="kpi-header">
-            <span class="kpi-title">2. Completed Sessions</span>
-            <div class="kpi-icon blue"><i class="ri-logout-box-r-line"></i></div>
+            <span class="kpi-title">2. COMPLETED SESSIONS</span>
         </div>
         <div class="kpi-value">{{ number_format($totalCompletedSessions) }}</div>
-        <div class="kpi-sub">
-            <span style="color: #2563EB; font-weight: 700;">{{ $currentlyParked }} currently inside</span>
-        </div>
+        <div class="kpi-sub">{{ $currentlyParked }} currently inside</div>
     </div>
 
     <!-- Card 3: Free Sessions (Grace Period) -->
-    <div class="kpi-card emerald">
+    <div class="kpi-card">
         <div class="kpi-header">
-            <span class="kpi-title">3. Free Sessions (≤15m)</span>
-            <div class="kpi-icon emerald"><i class="ri-gift-line"></i></div>
+            <span class="kpi-title">3. FREE SESSIONS (≤15M)</span>
         </div>
-        <div class="kpi-value" style="color: #059669;">{{ number_format($totalFreeSessions) }}</div>
-        <div class="kpi-sub">
-            <span style="color: #059669; font-weight: 700;">₱0.00 assessed (Grace)</span>
-        </div>
+        <div class="kpi-value">{{ number_format($totalFreeSessions) }}</div>
+        <div class="kpi-sub">₱0.00 assessed (Grace)</div>
     </div>
 
     <!-- Card 4: Paid Sessions -->
-    <div class="kpi-card purple">
+    <div class="kpi-card">
         <div class="kpi-header">
-            <span class="kpi-title">4. Paid Sessions (>15m)</span>
-            <div class="kpi-icon purple"><i class="ri-shield-star-line"></i></div>
+            <span class="kpi-title">4. PAID SESSIONS (>15M)</span>
         </div>
-        <div class="kpi-value" style="color: #7C3AED;">{{ number_format($totalPaidSessions) }}</div>
-        <div class="kpi-sub">
-            <span>Billable parking exits</span>
-        </div>
+        <div class="kpi-value">{{ number_format($totalPaidSessions) }}</div>
+        <div class="kpi-sub">Billable parking exits</div>
     </div>
 
     <!-- Card 5: Fees Assessed -->
-    <div class="kpi-card amber">
+    <div class="kpi-card">
         <div class="kpi-header">
-            <span class="kpi-title">5. Total Fees Assessed</span>
-            <div class="kpi-icon amber"><i class="ri-file-text-line"></i></div>
+            <span class="kpi-title">5. TOTAL FEES ASSESSED</span>
         </div>
         <div class="kpi-value">₱{{ number_format($totalFeesAssessed, 2) }}</div>
-        <div class="kpi-sub">
-            <span>Gross tariff computation</span>
-        </div>
+        <div class="kpi-sub">Gross tariff computation</div>
     </div>
 
     <!-- Card 6: Revenue Collected -->
-    <div class="kpi-card emerald">
+    <div class="kpi-card">
         <div class="kpi-header">
-            <span class="kpi-title">6. Revenue Collected</span>
-            <div class="kpi-icon emerald"><i class="ri-money-dollar-circle-fill"></i></div>
+            <span class="kpi-title">6. REVENUE COLLECTED</span>
         </div>
-        <div class="kpi-value" style="color: #059669;">₱{{ number_format($totalRevenueCollected, 2) }}</div>
-        <div class="kpi-sub">
-            <span style="color: #059669; font-weight: 700;">Actual cash in hand</span>
-        </div>
+        <div class="kpi-value">₱{{ number_format($totalRevenueCollected, 2) }}</div>
+        <div class="kpi-sub">Actual cash in hand</div>
     </div>
 
     <!-- Card 7: Unpaid / Report Range -->
-    <div class="kpi-card cyan">
+    <div class="kpi-card">
         <div class="kpi-header">
-            <span class="kpi-title">7. Unpaid & Scope</span>
-            <div class="kpi-icon cyan"><i class="ri-calendar-event-line"></i></div>
+            <span class="kpi-title">7. UNPAID & SCOPE</span>
         </div>
-        <div class="kpi-value" style="font-size: 1.15rem; color: #0284C7;">
-            ₱{{ number_format($totalUnpaidAssessed, 2) }} Unpaid
-        </div>
-        <div class="kpi-sub" style="margin-top: 0.25rem;">
-            <span>Scope: {{ $rangeLabel }}</span>
-        </div>
+        <div class="kpi-value compact">₱{{ number_format($totalUnpaidAssessed, 2) }} Unpaid</div>
+        <div class="kpi-sub">Scope: {{ $rangeLabel }}</div>
     </div>
 
     <!-- Operational Dwell Card -->
-    <div class="kpi-card slate">
+    <div class="kpi-card">
         <div class="kpi-header">
-            <span class="kpi-title">Avg Stay & Accuracy</span>
-            <div class="kpi-icon slate"><i class="ri-time-line"></i></div>
+            <span class="kpi-title">AVG STAY & ACCURACY</span>
         </div>
-        <div class="kpi-value">{{ $avgDurationFormatted }}</div>
-        <div class="kpi-sub">
-            <span>OCR Confidence: <strong>{{ $avgConfidence }}%</strong></span>
-        </div>
+        <div class="kpi-value compact">{{ $avgDurationFormatted }}</div>
+        <div class="kpi-sub">OCR Confidence: {{ $avgConfidence }}%</div>
     </div>
 </div>
 
@@ -707,6 +623,9 @@
     </button>
     <button type="button" class="report-tab-btn" onclick="switchReportTab('transactions', this)">
         <i class="ri-file-list-3-line"></i> Transaction Ledger (Audit)
+    </button>
+    <button type="button" class="report-tab-btn" onclick="switchReportTab('memberships', this)">
+        <i class="ri-user-star-line"></i> Membership Revenue Ledger
     </button>
 </div>
 
@@ -1024,6 +943,87 @@
                         <tr>
                             <td colspan="9" style="text-align: center; padding: 2rem; color: var(--text-tertiary);">
                                 No individual transaction records found.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- TAB 5: MEMBERSHIP REVENUE LEDGER -->
+<div id="tab-memberships" class="report-tab-panel">
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+        <div class="kpi-card">
+            <div class="kpi-header"><span class="kpi-title">MEMBERSHIP REVENUE</span></div>
+            <div class="kpi-value">₱{{ number_format($totalMembershipRevenue, 2) }}</div>
+            <div class="kpi-sub">Total dues collected in scope</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-header"><span class="kpi-title">ACTIVE MEMBERS</span></div>
+            <div class="kpi-value" style="color: #15803D;">{{ number_format($activeMembersCount) }}</div>
+            <div class="kpi-sub">Total active subscriber accounts</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-header"><span class="kpi-title">EXPIRED SUBSCRIBERS</span></div>
+            <div class="kpi-value" style="color: #B91C1C;">{{ number_format($expiredMembersCount) }}</div>
+            <div class="kpi-sub">Subscribers requiring renewal</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-header"><span class="kpi-title">RENEWALS RECORDED</span></div>
+            <div class="kpi-value">{{ number_format($membershipRenewalsCount) }}</div>
+            <div class="kpi-sub">{{ number_format($memberSessionsCount) }} member gate sessions</div>
+        </div>
+    </div>
+
+    <div class="report-table-card">
+        <div class="report-table-header">
+            <div class="report-table-title">
+                <h3><i class="ri-user-star-line" style="color: #2563EB;"></i> Membership Subscription Payments Ledger</h3>
+                <p style="margin: 0; font-size: 0.8125rem; color: var(--text-secondary);">Separate accounting ledger of recurring monthly membership fees (strictly separated from parking session tariffs)</p>
+            </div>
+            <a href="{{ route('memberships.export') }}" class="btn-action-outline">
+                <i class="ri-download-line"></i> Export Membership Ledger
+            </a>
+        </div>
+        <div class="report-table-wrap">
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Date & Time</th>
+                        <th>Member Name</th>
+                        <th>Plate Number</th>
+                        <th>Payment Type</th>
+                        <th>Subscription Period</th>
+                        <th>Amount Paid</th>
+                        <th>Method & Reference</th>
+                        <th>Cashier / Admin</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($recentMemberPayments as $p)
+                        <tr>
+                            <td>
+                                <strong>{{ $p->paid_at ? $p->paid_at->format('M d, Y') : $p->created_at->format('M d, Y') }}</strong>
+                                <div style="font-size: 0.725rem; color: var(--text-tertiary);">{{ $p->paid_at ? $p->paid_at->format('h:i A') : '' }}</div>
+                            </td>
+                            <td><strong>{{ $p->member->full_name ?? 'Subscriber' }}</strong></td>
+                            <td><span style="font-family: monospace; font-weight: 700;">{{ $p->member->plate_number ?? '—' }}</span></td>
+                            <td>
+                                <span style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #2563EB;">
+                                    {{ $p->payment_type }}
+                                </span>
+                            </td>
+                            <td>{{ $p->start_date ? $p->start_date->format('M d') : '' }} – {{ $p->end_date ? $p->end_date->format('M d, Y') : '' }} ({{ $p->duration_months }}m)</td>
+                            <td><strong style="color: #059669; font-size: 0.95rem;">₱{{ number_format($p->amount, 2) }}</strong></td>
+                            <td>{{ strtoupper($p->payment_method) }} @if($p->payment_reference)<span style="font-size: 0.75rem; color: #6B7280;">({{ $p->payment_reference }})</span>@endif</td>
+                            <td>{{ $p->received_by ?? 'System' }}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-tertiary);">
+                                No membership payments recorded in this period.
                             </td>
                         </tr>
                     @endforelse

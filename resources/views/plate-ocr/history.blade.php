@@ -33,17 +33,15 @@
     }
 
     .stat-card {
-        background: var(--bg-secondary);
+        background: #FFFFFF;
         border: 1px solid var(--border-color);
-        border-radius: 12px;
-        box-shadow: var(--card-shadow);
-        padding: 1.25rem;
-        transition: all 0.2s ease;
+        border-radius: 8px;
+        padding: 1.15rem 1.25rem;
+        transition: border-color 0.15s ease;
     }
 
     .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--card-shadow-hover);
+        border-color: #CBD5E1;
     }
 
     .stat-header {
@@ -54,22 +52,20 @@
     }
 
     .stat-icon {
-        width: 42px;
-        height: 42px;
-        border-radius: 10px;
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.35rem;
+        font-size: 1.1rem;
+        background: #F9FAFB;
+        border: 1px solid var(--border-color);
+        color: #111827;
     }
 
-    .stat-icon.primary { background: #EFF6FF; color: #2563EB; }
-    .stat-icon.success { background: #ECFDF5; color: #10B981; }
-    .stat-icon.orange { background: #FFF7ED; color: #F97316; }
-    .stat-icon.info { background: #E0F2FE; color: #0284C7; }
-
     .stat-title {
-        font-size: 0.75rem;
+        font-size: 0.6875rem;
         font-weight: 700;
         color: var(--text-tertiary);
         text-transform: uppercase;
@@ -78,7 +74,7 @@
     }
 
     .stat-value {
-        font-size: 1.75rem;
+        font-size: 1.6rem;
         font-weight: 800;
         color: var(--text-primary);
         line-height: 1.1;
@@ -86,10 +82,9 @@
 
     /* Table Card */
     .table-card {
-        background: var(--bg-secondary);
+        background: #FFFFFF;
         border: 1px solid var(--border-color);
-        border-radius: 14px;
-        box-shadow: var(--card-shadow);
+        border-radius: 8px;
         overflow: hidden;
     }
 
@@ -443,8 +438,8 @@
                                 @endphp
                                 <div style="font-weight: 600;">{{ $stay }}</div>
                                 @if($isGrace)
-                                    <span style="display: inline-flex; align-items: center; gap: 3px; font-size: 0.7rem; font-weight: 800; background: #D1FAE5; color: #065F46; padding: 2px 6px; border-radius: 4px; border: 1px solid #A7F3D0;">
-                                        <i class="ri-gift-line"></i> FREE (≤15m)
+                                    <span style="display: inline-flex; align-items: center; gap: 3px; font-size: 0.6875rem; font-weight: 600; background: #F9FAFB; color: #111827; padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-color);">
+                                        FREE (≤15m)
                                     </span>
                                 @else
                                     <div style="font-size: 0.75rem; color: #64748B;">₱{{ number_format((float)($entry->parking_fee ?? 0), 2) }}</div>
@@ -474,7 +469,7 @@
                                 <a href="{{ route('plate-ocr.download', ['plate' => $entry->plate_number, 'timestamp' => optional($entry->entry_time)->format('Y-m-d H:i:s')]) }}"
                                    class="action-btn"
                                    title="Download Gate Pass"><i class="ri-download-line"></i></a>
-                                <button class="action-btn" title="Print Log" onclick="window.print()"><i class="ri-printer-line"></i></button>
+                                <button type="button" class="action-btn" title="Print Ticket" onclick="printTicket('{{ route('plate-ocr.print', $entry->id) }}')"><i class="ri-printer-line"></i></button>
                             </div>
                         </td>
                     </tr>
@@ -571,25 +566,31 @@
 
 <script>
 function printTicket(url) {
-    // Remove existing iframe if present
     let oldFrame = document.getElementById('hiddenPrintFrame');
     if (oldFrame) oldFrame.remove();
 
-    // Create a new iframe that is small so it doesn't stretch the print layout height
     let frame = document.createElement('iframe');
     frame.id = 'hiddenPrintFrame';
     frame.style.position = 'fixed';
     frame.style.top = '0';
     frame.style.left = '0';
     frame.style.width = '58mm';
-    frame.style.height = '10px';
+    frame.style.height = '100px';
+    frame.style.border = 'none';
     frame.style.zIndex = '-9999';
-    frame.style.opacity = '0';
+    frame.style.opacity = '0.01';
     frame.style.pointerEvents = 'none';
     
     frame.onload = function() {
-        frame.contentWindow.focus();
-        frame.contentWindow.print();
+        setTimeout(function() {
+            try {
+                frame.contentWindow.focus();
+                frame.contentWindow.print();
+            } catch (err) {
+                console.error("Iframe print error: ", err);
+                window.open(url, '_blank');
+            }
+        }, 150);
     };
     
     frame.src = url;

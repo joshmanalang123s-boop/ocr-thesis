@@ -337,18 +337,18 @@
                     <h2><i class="ri-money-dollar-circle-line" style="color: #2563EB;"></i> Parking Fee Rates & Grace Period</h2>
                     <p>Configure facility fee schedules, mandatory 15-minute grace period, and succeeding hourly charges</p>
                 </div>
-                <button type="button" class="btn btn-primary" onclick="openChangeFeeModal()" style="display: inline-flex; align-items: center; gap: 0.5rem; background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%); padding: 0.65rem 1.25rem; font-weight: 700;">
+                <button type="button" class="btn btn-primary" onclick="openChangeFeeModal()" style="display: inline-flex; align-items: center; gap: 0.5rem; background: #111827; border: 1px solid #111827; border-radius: 6px; padding: 0.6rem 1.25rem; font-weight: 600; color: #FFFFFF;">
                     <i class="ri-edit-2-line"></i>
                     <span>Change Parking Fee</span>
                 </button>
             </div>
             <div class="section-body">
                 <!-- Mandatory 15-Minute Free Grace Banner -->
-                <div style="background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%); border: 1.5px solid #10B981; border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: flex; align-items: flex-start; gap: 0.85rem;">
-                    <span style="background: #047857; color: white; padding: 0.25rem 0.6rem; border-radius: 6px; font-size: 0.65rem; font-weight: 800; letter-spacing: 0.05em;">RULE GUARANTEE</span>
+                <div style="background: #FFFFFF; border: 1px solid var(--border-color); border-left: 3px solid #10B981; border-radius: 6px; padding: 0.85rem 1.25rem; margin-bottom: 1.5rem; display: flex; align-items: flex-start; gap: 0.85rem;">
+                    <span style="background: #F9FAFB; color: #111827; border: 1px solid var(--border-color); padding: 0.2rem 0.55rem; border-radius: 4px; font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;">15M Grace Rule</span>
                     <div>
-                        <strong style="color: #065F46; font-size: 0.925rem; display: block; margin-bottom: 0.2rem;">Mandatory 15-Minute Free Parking Grace Period</strong>
-                        <p style="color: #047857; font-size: 0.825rem; margin: 0; line-height: 1.4;">
+                        <strong style="color: #111827; font-size: 0.875rem; display: block; margin-bottom: 0.2rem;">Mandatory 15-Minute Free Parking Grace Period</strong>
+                        <p style="color: #4B5563; font-size: 0.8125rem; margin: 0; line-height: 1.4;">
                             Vehicles exiting in 15 minutes or less are automatically assessed <strong>₱0.00 (FREE)</strong>. Vehicles that exit after 15 minutes are charged according to configured rates below.
                         </p>
                     </div>

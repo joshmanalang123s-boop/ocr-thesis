@@ -26,33 +26,18 @@
         margin-top: 0.25rem;
     }
 
-    .gate-badge-entry {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        padding: 0.3rem 0.75rem;
-        background: #ECFDF5;
-        color: #059669;
-        border: 1px solid #A7F3D0;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 700;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-    }
-
     .auto-badge {
         display: inline-flex;
         align-items: center;
         gap: 0.35rem;
-        padding: 0.3rem 0.75rem;
-        background: #EEF2FF;
-        color: #4338CA;
-        border: 1px solid #C7D2FE;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 700;
-        letter-spacing: 0.05em;
+        padding: 0.25rem 0.6rem;
+        background: #F9FAFB;
+        color: #111827;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
         text-transform: uppercase;
     }
 
@@ -414,9 +399,8 @@
 <!-- Page Header -->
 <div class="page-header">
     <h1>
-        <i class="ri-login-box-line" style="color: #10B981;"></i>
+        <i class="ri-login-box-line"></i>
         Gate 1 • Entry Camera Terminal
-        <span class="gate-badge-entry"><i class="ri-checkbox-circle-fill"></i> GATE IN ONLINE</span>
         <span class="auto-badge" id="autoBadge"><i class="ri-robot-2-line"></i> AUTO-DETECT ACTIVE</span>
     </h1>
     <p>Automated license plate detection — vehicles are scanned and registered automatically</p>
@@ -514,7 +498,7 @@ class AutoEntryScanner {
         this.isPendingRequest = false;
 
         // Timing
-        this.scanIntervalMs = 400;  // scan every 400ms for near-instant detection
+        this.scanIntervalMs = 1000; // 1s adaptive interval prevents server starvation
         this.cooldownMs = 4000;     // 4s cooldown after successful detection
         this.scanTimer = null;
         this.cooldownUntil = 0;
@@ -598,13 +582,18 @@ class AutoEntryScanner {
     startAutoScan() {
         this.stopAutoScan();
         this.updateDetectionStatus('scanning', 'Monitoring camera feed for vehicles...');
+        this.scheduleNextScan(300);
+    }
 
-        this.scanTimer = setInterval(() => this.autoScanFrame(), this.scanIntervalMs);
+    scheduleNextScan(delayMs) {
+        if (!this.isAutoScanEnabled || !this.isCameraActive) return;
+        this.stopAutoScan();
+        this.scanTimer = setTimeout(() => this.autoScanFrame(), delayMs);
     }
 
     stopAutoScan() {
         if (this.scanTimer) {
-            clearInterval(this.scanTimer);
+            clearTimeout(this.scanTimer);
             this.scanTimer = null;
         }
     }
@@ -613,25 +602,31 @@ class AutoEntryScanner {
         if (!this.isCameraActive || !this.isAutoScanEnabled || this.isPendingRequest) return;
 
         // Check cooldown
-        if (Date.now() < this.cooldownUntil) return;
+        if (Date.now() < this.cooldownUntil) {
+            this.scheduleNextScan(500);
+            return;
+        }
 
         // Ensure video has valid dimensions
-        if (!this.video.videoWidth || !this.video.videoHeight) return;
+        if (!this.video.videoWidth || !this.video.videoHeight) {
+            this.scheduleNextScan(500);
+            return;
+        }
 
         this.isPendingRequest = true;
         this.stats.scans++;
         this.updateStats();
 
         try {
-            // Capture frame cleanly with max width 960 for fast transmission & processing
-            const maxW = 960;
+            // Capture frame cleanly with max width 640 for fast transmission & processing
+            const maxW = 640;
             const scale = Math.min(1, maxW / this.video.videoWidth);
             this.canvas.width = Math.round(this.video.videoWidth * scale);
             this.canvas.height = Math.round(this.video.videoHeight * scale);
             const ctx = this.canvas.getContext('2d');
             ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
 
-            const frameData = this.canvas.toDataURL('image/jpeg', 0.80);
+            const frameData = this.canvas.toDataURL('image/jpeg', 0.75);
 
             // Send to API
             const response = await fetch(this.apiUrl, {
@@ -681,6 +676,9 @@ class AutoEntryScanner {
             this.setCameraDot('active');
         } finally {
             this.isPendingRequest = false;
+            if (this.isAutoScanEnabled && this.isCameraActive) {
+                this.scheduleNextScan(this.scanIntervalMs);
+            }
         }
     }
 

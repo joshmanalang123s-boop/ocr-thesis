@@ -26,6 +26,9 @@ class PlateEntry extends Model
         'is_free_grace',
         'applied_rate_snapshot',
         'rate_id',
+        'is_member',
+        'member_id',
+        'covered_by_membership',
         'payment_status',
         'status',
         'remarks',
@@ -59,6 +62,14 @@ class PlateEntry extends Model
     }
 
     /**
+     * Relationship: The membership record if vehicle is a registered member.
+     */
+    public function member()
+    {
+        return $this->belongsTo(Member::class, 'member_id');
+    }
+
+    /**
      * Relationship: User who made manual correction.
      */
     public function corrector()
@@ -73,6 +84,8 @@ class PlateEntry extends Model
         'exit_confidence' => 'decimal:2',
         'parking_fee' => 'decimal:2',
         'is_free_grace' => 'boolean',
+        'is_member' => 'boolean',
+        'covered_by_membership' => 'boolean',
         'applied_rate_snapshot' => 'array',
         'is_manually_corrected' => 'boolean',
         'corrected_at' => 'datetime',

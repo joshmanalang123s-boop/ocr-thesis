@@ -801,10 +801,6 @@
     <!-- Gate 1 (Entry Cam) -->
     <div class="gate-status-card">
         <div class="gate-card-left">
-            <div class="gate-status-pill">
-                <span class="status-dot"></span>
-                <span>Operational</span>
-            </div>
             <div class="gate-title-wrap">
                 <h3><i class="ri-login-box-line"></i> Gate 1 • Entry Camera</h3>
                 <p>Automatic vehicle plate detection & QR gate pass issuance</p>
@@ -821,10 +817,6 @@
     <!-- Gate 2 (Exit Cam) -->
     <div class="gate-status-card">
         <div class="gate-card-left">
-            <div class="gate-status-pill">
-                <span class="status-dot"></span>
-                <span>Operational</span>
-            </div>
             <div class="gate-title-wrap">
                 <h3><i class="ri-logout-box-r-line"></i> Gate 2 • Exit Camera</h3>
                 <p>Exit plate recognition, 15m grace evaluation & fee settlement</p>
@@ -1514,14 +1506,22 @@ function printTicket(url) {
     frame.style.top = '0';
     frame.style.left = '0';
     frame.style.width = '58mm';
-    frame.style.height = '10px';
+    frame.style.height = '100px';
+    frame.style.border = 'none';
     frame.style.zIndex = '-9999';
-    frame.style.opacity = '0';
+    frame.style.opacity = '0.01';
     frame.style.pointerEvents = 'none';
     
     frame.onload = function() {
-        frame.contentWindow.focus();
-        frame.contentWindow.print();
+        setTimeout(function() {
+            try {
+                frame.contentWindow.focus();
+                frame.contentWindow.print();
+            } catch (err) {
+                console.error("Iframe print error: ", err);
+                window.open(url, '_blank');
+            }
+        }, 150);
     };
     
     frame.src = url;

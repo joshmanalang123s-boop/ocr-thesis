@@ -239,22 +239,37 @@
 </div>
 
 @php
-    $isGrace = ($entry && ($entry->is_free_grace || $entry->isFreeGrace())) || ($totalFeeAmount <= 0);
+    $isCoveredMember = ($entry && ($entry->covered_by_membership || $entry->is_member));
+    $isGrace = !$isCoveredMember && (($entry && ($entry->is_free_grace || $entry->isFreeGrace())) || ($totalFeeAmount <= 0));
 @endphp
 
-@if($isGrace)
-<!-- 15-Minute Free Grace Banner -->
-<div style="background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%); border: 1.5px solid #10B981; border-radius: 12px; padding: 0.85rem 1.25rem; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+@if($isCoveredMember)
+<!-- Monthly Membership Pass Banner -->
+<div style="background: #FFFFFF; border: 1px solid var(--border-color); border-left: 3px solid #2563EB; border-radius: 6px; padding: 0.85rem 1.25rem; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
     <div style="display: flex; align-items: center; gap: 0.75rem;">
-        <i class="ri-gift-line" style="font-size: 1.75rem; color: #059669;"></i>
+        <i class="ri-user-star-fill" style="font-size: 1.35rem; color: #2563EB;"></i>
         <div>
-            <strong style="color: #065F46; font-size: 1rem;">15-Minute Free Parking Grace Period Applied</strong>
-            <p style="margin: 0; font-size: 0.825rem; color: #047857;">
+            <strong style="color: #111827; font-size: 0.95rem;">Active Monthly Membership Pass Applied</strong>
+            <p style="margin: 0; font-size: 0.8125rem; color: #4B5563;">
+                Vehicle is covered under an active monthly membership subscription. The assessed exit parking fee is <strong>₱0.00</strong>.
+            </p>
+        </div>
+    </div>
+    <span style="background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; padding: 0.25rem 0.65rem; border-radius: 4px; font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;">Member Pass • ₱0.00</span>
+</div>
+@elseif($isGrace)
+<!-- 15-Minute Free Grace Banner -->
+<div style="background: #FFFFFF; border: 1px solid var(--border-color); border-left: 3px solid #10B981; border-radius: 6px; padding: 0.85rem 1.25rem; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <i class="ri-shield-check-line" style="font-size: 1.35rem; color: #10B981;"></i>
+        <div>
+            <strong style="color: #111827; font-size: 0.95rem;">15-Minute Free Parking Grace Period Applied</strong>
+            <p style="margin: 0; font-size: 0.8125rem; color: #4B5563;">
                 The vehicle exited within the mandatory 15-minute free grace window. The assessed parking fee is <strong>₱0.00</strong>.
             </p>
         </div>
     </div>
-    <span style="background: #047857; color: white; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.05em;">FEE WAIVED</span>
+    <span style="background: #F9FAFB; color: #111827; border: 1px solid var(--border-color); padding: 0.25rem 0.65rem; border-radius: 4px; font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;">Fee Waived</span>
 </div>
 @endif
 
